@@ -4,6 +4,35 @@ Projet de CFD (CentraleSupélec, 2026-27). Énoncé : [Doc/FinalProject_LidDrive
 Cadrage complet, phases et décisions : [PLAN.md](PLAN.md) — **le lire avant toute tâche non triviale**.
 Ce fichier résume ce qu'il faut savoir en permanence ; en cas de conflit, l'énoncé prime, puis PLAN.md.
 
+## 0. Principe directeur : SIMPLICITÉ (demande explicite de l'utilisateur)
+
+L'utilisateur veut un projet **petit et facile à comprendre** qui remplit les critères de l'énoncé, rien de plus.
+Cette règle prime sur les ambitions de PLAN.md (qui reste une feuille de route, pas une liste d'obligations).
+
+- Faire **le minimum qui satisfait l'énoncé** : 2 méthodes, Parties A/B/C, K et P suivis. Pas de bonus
+  (MMS, QUICK, Newton, études de sensibilité exhaustives…) sauf demande explicite.
+- Code **court et lisible** avant tout : peu de fichiers, peu de fonctions, pas d'abstraction « pour plus tard »,
+  pas de couche de chargement/validation superflue. Si `np.loadtxt` suffit, on n'écrit pas de module.
+- Tests : seulement ceux qui vérifient quelque chose d'essentiel (divergence nulle, Poisson, bilan d'énergie).
+- Littérature : **strict minimum** = profils de Ghia (validation) + fourchette de Re_c (Partie C). Voir `ref_data/README.md`.
+- Avant d'ajouter quoi que ce soit, se demander : « l'énoncé l'exige-t-il ? » Sinon, ne pas le faire (ou demander).
+- Expliquer simplement : l'utilisateur doit pouvoir réexpliquer chaque ligne à l'oral.
+
+### Commentaires : OBLIGATOIRES et abondants (demande explicite)
+
+Le code sera relu par l'utilisateur et son équipe : il doit se lire comme un cours.
+- **En tête de chaque fichier** : à quoi il sert, et où il s'insère dans le projet (quelle méthode, quelle partie).
+- **Chaque fonction** : docstring en français avec ce qu'elle fait, l'équation discrétisée (en clair),
+  les entrées/sorties avec leur forme (`(N+1, N+2)`…) et leur position sur la grille.
+- **Dans le corps** : un commentaire avant chaque bloc logique qui dit *quoi* et *pourquoi*
+  (ex. « fantôme : la moyenne fantôme/intérieur doit valoir U_t sur le couvercle »).
+  Relier chaque formule à l'équation correspondante (`# ∂u/∂x centré, ordre 2`).
+- Expliquer les choix non évidents (valeur de CFL, indice décalé de +1 à cause des fantômes, etc.)
+  et citer la cellule d'origine quand on réutilise le Projet 1 ou 3.
+- Dans les notebooks : une cellule markdown avant chaque calcul qui explique ce qu'on va faire et
+  ce qu'on s'attend à voir, puis une courte interprétation après la figure.
+- Mieux vaut trop commenter que pas assez, mais sans paraphraser une ligne évidente (`i += 1`).
+
 ## 1. Le problème
 
 - Cavité carrée 2D, NS incompressible seul (pas de scalaire). 3 parois fixes (no-slip), couvercle
@@ -55,10 +84,12 @@ Ne pas trancher seul une décision D1–D8 ouverte de PLAN.md §8 : proposer, pu
 
 ## 4. Références à utiliser pour la validation
 
-Ghia, Ghia & Shin (1982) — profils médians + tourbillons, Re = 100…10000 ; Botella & Peyret (1998) — Re = 1000
-de référence ; Erturk (2005) ; bifurcation : Auteri et al. (2002), Bruneau & Saad (2006), Poliashenko & Aidun (1995).
-Données saisies dans `ref_data/*.csv` (source + tableau cités en en-tête). **Ne jamais inventer une valeur de
-référence** : si elle n'est pas vérifiée, le signaler explicitement.
+Strict minimum (cf. §0) :
+- **Ghia, Ghia & Shin (1982)** : profils u(0.5, y) et v(x, 0.5) pour Re = 100…10000, dans
+  `ref_data/ghia1982_*.csv` (lecture directe par `np.loadtxt(..., delimiter=",")`). Sert aux Parties A et B.
+- **Re_c** : fourchette publiée ≈ 7400–8050 (énoncé : « proche de 8000 »), détails dans `ref_data/README.md`.
+
+**Ne jamais inventer une valeur de référence** : si elle n'est pas vérifiée, le signaler explicitement.
 
 ## 5. Architecture du code (PLAN.md §6)
 
@@ -66,7 +97,7 @@ référence** : si elle n'est pas vérifiée, le signaler explicitement.
 cavity/          params.py, poisson.py, mac_solver.py, psi_omega_solver.py,
                  advection.py, diagnostics.py, run.py
 tests/           tests des briques (ordre, divergence, Poisson, bilan d'énergie…)
-ref_data/        données littérature (CSV)
+ref_data/        2 CSV de Ghia + README (rien d'autre)
 results/         sorties .npz (lourdes → non versionnées)
 notebooks/       A_Re100.ipynb, B_sweep_Re.ipynb, C_unsteady.ipynb
 figures/

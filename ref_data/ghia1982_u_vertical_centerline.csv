@@ -1,11 +1,7 @@
 # Ghia (1982) TABLE I : u(x = 0.5, y) le long de la ligne verticale mediane.
-# Source : Ghia U., Ghia K.N., Shin C.T. (1982), High-Re solutions for incompressible flow using the Navier-Stokes equations and a multigrid method, J. Comput. Phys. 48(3):387-411, doi:10.1016/0021-9991(82)90058-4
-# Grille de Ghia : 129x129 (Re <= 3200) et 257x257 (Re >= 5000) ; methode psi-omega, multigrille.
-# Transcription : gists de I. Pisarev (ivan-pi) 3e9326d18a366ffe6a8e5bfda6353219 / caa6c6737d36a9140fbcf2ea59c78b3c,
-#   concordantes entre elles et avec d autres copies secondaires ; NON reverifiees sur l article original.
-#   Valeurs recopiees telles que transcrites (coquilles de l original incluses, non corrigees).
-# Adimensionnement : L = U = 1. Valeurs suspectes : voir ref_data/README.md et cavity/ref_data.py (GHIA_SUSPECT).
-y,Re100,Re400,Re1000,Re3200,Re5000,Re7500,Re10000
+# Source : Ghia, Ghia & Shin (1982), J. Comput. Phys. 48:387-411 (copie : gists ivan-pi, non reverifiee sur l'original).
+# Adimensionne L = U = 1. Coquilles connues : voir ref_data/README.md.
+# y,Re100,Re400,Re1000,Re3200,Re5000,Re7500,Re10000
 1.0000,1.00000,1.00000,1.00000,1.00000,1.00000,1.00000,1.00000
 0.9766,0.84123,0.75837,0.65928,0.53236,0.48223,0.47244,0.47221
 0.9688,0.78871,0.68439,0.57492,0.48296,0.46120,0.47048,0.47783
