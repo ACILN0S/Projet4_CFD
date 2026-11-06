@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Sorties de simulation (lourdes) : seuls les petits résumés sont versionnés
+results/**/*.npz
+results/**/*.npy
+!results/.gitkeep
+
+# Divers
+.DS_Store
+Thumbs.db

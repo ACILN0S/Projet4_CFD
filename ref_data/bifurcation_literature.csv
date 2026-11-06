@@ -1,0 +1,12 @@
+# Valeurs de Re_c (première bifurcation de Hopf, cavité carrée, couvercle uniforme) rapportées dans la littérature.
+# Colonne status :
+#   secondary = valeur lue dans un article qui CITE la référence (citing_source), pas dans l'original
+#   unverified = valeur de mémoire / snippet non sourcé : NE PAS UTILISER avant vérification sur l'article
+# omega_c = pulsation adimensionnée (temps en L/U) au seuil ; vide si non connue de façon fiable.
+source,Re_c,omega_c,method,status,citing_source
+Peng Shiau Hwang 2003 (Comput. Fluids 32:337-352),7402,,DNS,secondary,Erturk et al. 2005 (arXiv cs/0411047) p.8
+Poliashenko Aidun 1995 (J. Comput. Phys. 121:246-260),7763,,methode directe (bifurcation),secondary,Erturk et al. 2005 (arXiv cs/0411047) p.8
+Fortin Jardak Gervais Pierre 1997 (IJNMF 24:1185-1210),7998.5,,stabilite lineaire (elements finis),secondary,Erturk et al. 2005 (arXiv cs/0411047) p.8
+Auteri Parolini Quartapelle 2002 (J. Comput. Phys. 183:1-25),8018,,DNS spectrale,unverified,snippet de recherche (8018.2 +- 0.6) - a confirmer sur l'article
+Sahin Owens 2003 (IJNMF 42:79-88),8031.92,2.8356,stabilite lineaire (volumes finis),unverified,memoire - a confirmer sur l'article
+Bruneau Saad 2006 (Comput. Fluids 35:326-348),,,DNS (Re_c annonce entre 8000 et 8050),unverified,memoire - a confirmer sur l'article

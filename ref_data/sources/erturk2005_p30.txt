@@ -1,0 +1,23 @@
+Re
+2500 5000 7500 10000 12500
+Present  -0.121470 -0.122233 -0.122386 -0.122390 -0.122326
+ -1.976117 -1.940732 -1.926969 -1.919018 -1.913557
+Barragy & Carey Ref. [2]  -0.1214621 -0.122219 -0.1223803 -0.1223930 -0.1223584
+ - - - - -
+Schreiber & Keller Ref. [26]  - - - -0.12292 -
+ - - - -1.9263 -
+Li et. al. Ref. [18]  - -0.120359 -0.1193791 - -
+ - -1.92430 -1.91950 - -
+Benjamin & Denny Ref. [5]  - - - -0.1212 -
+ - - - - -
+Ghia et. al. Ref. [12]  - -0.118966 -0.119976 -0.119731 -
+ - -1.86016 -1.87987 -1.88082 -
+Liao & Zhu Ref. [20]  - -0.1186 -0.1201 -0.1201 -
+ - -1.9375 -1.9630 -1.9426 -
+Hou et. al. Ref. [17]  - -0.1214 -0.1217 - -
+ - - - - -
+Grigoriev & Dargush Ref. [14]  - -0.12209 - - -
+ - - - - -
+Table 4. Comparison of the minimum streamfunction value, the vorticity value
+at the center of the primary vortex for various Reynolds numbers
+

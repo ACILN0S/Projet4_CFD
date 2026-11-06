@@ -1,0 +1,29 @@
+Spatial
+Reference No Grid Accuracy   x y
+Present 401 × 401 h2 0.118585 2.062761 0.5300 0.5650
+Present 513 × 513 h2 0.118722 2.064765 0.5313 0.5645
+Present 601 × 601 h2 0.118781 2.065530 0.5300 0.5650
+Present Extrapolated h6 0.118942 2.067213 - -
+Barragy & Carey Ref. [2] 257 × 257 p=8 0.118930 - - -
+Botella & Peyret Ref. [6] N=128 N=128 0.1189366 2.067750 0.5308 0.5652
+Botella & Peyret Ref. [6] N=160 N=160 0.1189366 2.067753 0.5308 0.5652
+Schreiber & Keller Ref. [26] 100 × 100 h2 0.11315 1.9863 - -
+Schreiber & Keller Ref. [26] 121 × 121 h2 0.11492 2.0112 - -
+Schreiber & Keller Ref. [26] 141 × 141 h2 0.11603 2.0268 0.52857 0.56429
+Schreiber & Keller Ref. [26] Extrapolated h6 0.11894 2.0677 - -
+Wright & Gaskell Ref. [34] 1024 × 1024 h2 0.118821 2.06337 0.5308 0.5659
+Nishida & Satofuka Ref. [22] 129 × 129 h8 0.119004 2.068546 0.5313 0.5625
+Benjamin & Denny Ref. [5] 101 × 101 h2 0.1175 2.044 - -
+Benjamin & Denny Ref. [5] Extrapolated high order 0.1193 2.078 - -
+Li et. al. Ref. [18] 129 × 129 h4 0.118448 2.05876 0.5313 0.5625
+Ghia et. al. Ref. [12] 129 × 129 h2 0.117929 2.04968 0.5313 0.5625
+Bruneau & Jouron Ref. [7] 256 × 256 h2 0.1163 - 0.5313 0.5586
+Goyon Ref. [13] 129 × 129 h2 0.1157 - 0.5312 0.5625
+Vanka Ref. [31] 321 × 321 h2 0.1173 - 0.5438 0.5625
+Gupta Ref. [15] 41 × 41 h4 0.111492 2.02763 0.525 0.575
+Hou et. al. Ref. [17] 256 × 256 h2 0.1178 2.0760 0.5333 0.5647
+Liao & Zhu Ref. [20] 129 × 129 h2 0.1160 2.0234 0.5313 0.5625
+Grigoriev & Dargush Ref. [14] - - 0.11925 - 0.531 0.566
+Table 1. Comparison of the properties of the primary vortex; the maximum streamfunction value,
+the vorticity value and the location of the center, for Re=1000
+

@@ -182,13 +182,16 @@ Alternatives possibles pour la méthode 2 (cf. §8, décision D1) : solveur **st
 Chaque phase a un **critère de sortie** : on ne passe à la suivante que s'il est rempli.
 
 ### Phase 0 — Mise en place (½ journée)
-- [ ] Structure du dépôt (§6), `environment.yml`, `AGENTS.md`/`CLAUDE.md` (style de code, conventions).
-- [ ] Bibliographie : récupérer et **saisir les tableaux de Ghia (1982)** (profils $u(x=0.5,y)$ et
+- [x] Structure du dépôt (§6), `environment.yml`, `AGENTS.md`/`CLAUDE.md` (style de code, conventions).
+- [~] Bibliographie : récupérer et **saisir les tableaux de Ghia (1982)** (profils $u(x=0.5,y)$ et
       $v(x,y=0.5)$, positions et intensités des tourbillons pour $Re$ = 100, 400, 1000, 3200, 5000, 7500,
       10000), Botella & Peyret (1998) pour $Re=1000$, Erturk (2005), et 2–3 articles sur la bifurcation
       ($Re_c$, période/fréquence, amplitude).
-- [ ] Rédiger à la main le **pseudo-code** de la méthode 1 et de la méthode 2 (recommandation des projets
-      précédents : comprendre avant de coder).
+      → Fait : Ghia Tables I–II, Erturk Tables 1/4/5/6/7, $Re_c$ (partiel), contrôlés par
+      `tests/test_ref_data.py`. **Reste** : Ghia Tables III–V (tourbillons à $Re$ = 100, 400), profils
+      de Botella, vérification des $Re_c$/fréquences sur les originaux (voir `ref_data/README.md`).
+- [~] Rédiger à la main le **pseudo-code** de la méthode 1 et de la méthode 2 (recommandation des projets
+      précédents : comprendre avant de coder). → Brouillon dans `docs/pseudocode.md`, **à relire/valider**.
 
 **Sortie** : fichiers de référence `ref_data/*.csv` + pseudo-code validé.
 
