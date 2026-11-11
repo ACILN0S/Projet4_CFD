@@ -1,5 +1,6 @@
 # Ghia (1982) TABLE I : u(x = 0.5, y) le long de la ligne verticale mediane.
-# Source : Ghia, Ghia & Shin (1982), J. Comput. Phys. 48:387-411 (copie : gists ivan-pi, non reverifiee sur l'original).
+# Source : Ghia, Ghia & Shin (1982), J. Comput. Phys. 48:387-411 (copie gists ivan-pi, recoupee avec doc_ref/ : voir README).
+# Grille de Ghia : 129x129 pour Re <= 3200, 257x257 pour Re = 5000, 7500, 10000.
 # Adimensionne L = U = 1. Coquilles connues : voir ref_data/README.md.
 # y,Re100,Re400,Re1000,Re3200,Re5000,Re7500,Re10000
 1.0000,1.00000,1.00000,1.00000,1.00000,1.00000,1.00000,1.00000

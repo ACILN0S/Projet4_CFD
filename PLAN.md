@@ -126,6 +126,10 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
 - [ ] M1 avec $N = 32, 64, 128$ : profils $u(0.5, y)$ et $v(x, 0.5)$ vs Ghia.
 - [ ] **Grille justifiée** : écart max à Ghia en fonction de $h$ (log-log, pente ≈ ordre du schéma,
   comme au workshop 9) ; on retient le $N$ où l'écart ne bouge plus.
+  **Attention** : Ghia a sa propre erreur (grille 129×129, ordre 2, pas d'étude de convergence chiffrée,
+  cf. `ref_data/README.md`) ⇒ un palier de l'écart à Ghia peut être **son** erreur. On trace donc aussi
+  l'écart entre nos grilles successives, $\max|u_N - u_{2N}|$ sur la ligne médiane (indépendant de toute
+  référence), dont la pente donne notre ordre observé.
 - [ ] **Signal à surveiller** (après l'étape 3) : si la pente vaut ≈ 1 pour M1 mais ≈ 2 pour M2, le
   premier suspect est la Neumann d'ordre 1 sur $p$ ⇒ alors seulement, passer à la Neumann d'ordre 2 par
   miroir (cf. « Pourquoi pas de cellules fantômes ») et le justifier par cette mesure.
@@ -146,7 +150,11 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
 
 - [ ] $N = 128$ (contrôle à $N = 64$ sur un cas). Lignes de courant (iso-$\psi$) : le tourbillon
   principal se recentre, des tourbillons de coin apparaissent puis grossissent.
-- [ ] Profils vs Ghia.
+- [ ] Profils vs Ghia. Ghia utilise 129×129 jusqu'à $Re = 3200$ et 257×257 à $Re = 5000$ : à $N = 128$,
+  on est à peu près à sa résolution pour $Re \le 3200$, mais **deux fois moins fin** que lui à $Re = 5000$
+  (un écart plus grand y est attendu, à commenter).
+- [ ] Rien chez Ghia ni chez Erturk sur $P$ ou $K$ (calculs stationnaires) : la validation de $P(Re)$ repose
+  sur la cohérence M1/M2 et sur la loi d'échelle.
 - [ ] $P(Re)$ en log-log et pente par régression linéaire. Attendu : $P \propto Re^{-1/2}$ à grand $Re$
   (couche limite d'épaisseur $\delta \propto Re^{-1/2}$, cf. workshop 12.3 : $\delta_{99} \propto \sqrt{x}$).
 - [ ] **Robustesse de la pente** : faire la régression de $P(Re)$ à $N = 64$ **et** à $N = 128$. Si la pente
@@ -172,6 +180,11 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
   couvercle. Des oscillations nœud à nœud signalent une instationnarité **numérique**, pas la bifurcation.
 - [ ] Tracés de $p$ et $\omega$ : fixer les bornes de l'échelle de couleur (pics en $1/h$ aux coins).
 - [ ] Comparaison littérature : $Re_c \approx 8000$ (fourchette 7400–8050, cf. `ref_data/README.md`).
+- [ ] **Instationnarité numérique ?** Erturk et al. (2005) obtiennent un calcul périodique à $Re = 7500$ sur
+  129×129, mais stationnaire sur 257×257. Notre $N = 128$ est dans cette zone à risque ⇒ le contrôle
+  $N = 64$ vs $128$ (sensibilité ci-dessus) sert aussi à ça : si la période ou l'amplitude change beaucoup
+  avec $N$, l'instationnarité est au moins en partie numérique. Nuance à dire : un solveur stationnaire
+  (Erturk) peut trouver une solution stationnaire **instable**, ce qui ne contredit pas $Re_c \approx 8000$.
 
 ### Étape 6 — Rendu
 

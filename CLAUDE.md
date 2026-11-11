@@ -48,6 +48,9 @@ L'utilisateur (et son équipe) doit pouvoir réexpliquer chaque ligne à l'oral.
 ## 4. Références (strict minimum)
 
 - Ghia, Ghia & Shin (1982) : `ref_data/ghia1982_*.csv`, lus avec `np.loadtxt(..., delimiter=",")`.
+  Grilles 129² (Re ≤ 3200) / 257² (Re ≥ 5000), ordre 2, sans étude de convergence chiffrée ; ni K ni P.
+- Erturk et al. (2005) : étude de maillage (401/513/601 + Richardson), Thom ⇒ ordre 2 global.
+  Articles dans `doc_ref/`, résumé dans `ref_data/README.md`.
 - `Re_c` ≈ 8000 (fourchette publiée 7400–8050) : `ref_data/README.md`.
 - Ne jamais inventer une valeur de référence.
 
