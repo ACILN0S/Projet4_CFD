@@ -51,7 +51,7 @@ Briques communes, toutes du cours :
 | Pas de temps                               | $\Delta t$ fixé par les conditions de stabilité CFL / Fourier                                                   | §5.3               |
 | $\partial_y u$ au couvercle (pour $P$) | différence décentrée d'ordre 2 $(3f_j-4f_{j-1}+f_{j-2})/2h$                                                    | aide-mémoire §2.6 |
 
-**Pas de** grille décalée (MAC), cellules fantômes, DCT/DST, RK3-SSP, QUICK, Numba, Richardson/GCI,
+**Pas de** grille décalée (MAC), cellules fantômes, DCT/DST, RK3-SSP, QUICK, Richardson/GCI,
 bilan d'énergie, FFT, tests unitaires : rien de tout cela n'est exigé.
 
 ### Pourquoi pas de cellules fantômes (contrairement au Projet 3)
@@ -211,7 +211,8 @@ Projet4_CFD/
 └── figures/, results/
 ```
 
-Code en **numpy vectorisé par tranches** (`u[1:-1, 1:-1]`), très commenté, en français.
+Code très commenté, en français : noyaux coûteux en **Numba** (boucles explicites, recommandé par le prof,
+décision du 2026-11-11), le reste en numpy.
 
 ---
 

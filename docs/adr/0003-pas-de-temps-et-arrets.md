@@ -46,8 +46,60 @@ surtout $\Delta t \le 2\nu$ (centré) qui coûtent cher. Enjeu de la Partie C.
 - **Attention** : $\max|u^{n+1}-u^n| = \Delta t\,\max|\partial_t u|$, donc le critère revient à
   $\max|\partial_t u| < 10^{-6}/\Delta t$. Comme $\Delta t$ est ~10 fois plus petit à $N = 128$ qu'à $N = 32$, le
   critère y est ~10 fois **moins sévère**.
-- **Décision** : on garde le critère du pseudo-code et on **affiche $\max|\partial_t u|$ à l'arrêt** pour chaque
-  grille, afin de vérifier que l'écoulement est bien stationnaire partout.
+- **Ce qui dépend de $\Delta t$ et ce qui n'en dépend pas** :
+  - $\partial_t u$ mesure à quelle vitesse l'écoulement évolue : c'est une propriété de l'écoulement, **pas** du
+    pas de temps. On l'estime par $(u^{n+1}-u^n)/\Delta t$ ; la division par $\Delta t$ compense la dépendance.
+  - $u^{n+1}-u^n$, lui, dépend de $\Delta t$ (deux fois plus petit si $\Delta t$ l'est).
+  - Le critère porte sur $u^{n+1}-u^n$, donc c'est le **seuil** sur $\partial_t u$ qui dépend de $\Delta t$.
+- **On connaît d'avance la valeur de $\partial_t u$ à l'arrêt** : $\max|\partial_t u| < 10^{-6}/\Delta t$ par construction, et
+  $\Delta t$ est fixé avant le calcul. L'afficher n'apprend donc rien.
+
+  | $N$ ($Re = 100$) | $\Delta t$ | $10^{-6}/\Delta t$ (borne de $\max\lvert\partial_t u\rvert$ à l'arrêt) |
+  | --- | --- | --- |
+  | 32 | $1.25\cdot10^{-2}$ | $8.0\cdot10^{-5}$ |
+  | 64 | $4.88\cdot10^{-3}$ | $2.0\cdot10^{-4}$ |
+  | 128 | $1.22\cdot10^{-3}$ | $8.2\cdot10^{-4}$ |
+
+- **Un $\partial_t u$ petit ne prouve pas qu'on est proche du stationnaire.** Près du stationnaire, l'écart décroît
+  en $e^{-\lambda t}$ ($\lambda$ : taux d'amortissement du mode le plus lent), donc
+  $$|u - u_\infty| \approx \frac{|\partial_t u|}{\lambda}.$$
+  Si $\lambda$ est petit, un $\partial_t u$ petit peut cacher un écart à $u_\infty$ important (ex. : $\lambda \sim 0.1$ et
+  $\partial_t u = 8\cdot10^{-4}$ ⇒ $|u - u_\infty| \sim 10^{-2}$, de l'ordre de l'écart à Ghia). $\lambda$ n'est pas connu d'avance :
+  la borne du tableau ne suffit pas, il faut **vérifier après coup** (voir Décision).
+- **$\lambda$ diminue quand $Re$ augmente** : la viscosité amortit de moins en moins vite les perturbations, et
+  $\lambda \to 0$ à l'approche de $Re_c \approx 8000$ (bifurcation). Au-delà, il n'y a plus de solution stationnaire :
+  l'écoulement est périodique et le critère n'est **jamais** atteint.
+- **Pourquoi pas un critère directement sur $\partial_t u$, soit $\max|u^{n+1}-u^n|/\Delta t < 10^{-6}$ ?**
+  Il aurait l'avantage d'avoir le même sens sur toutes les grilles, mais :
+  1. *Il est beaucoup plus sévère.* Il revient à $\max|u^{n+1}-u^n| < 10^{-6}\,\Delta t$, soit $\approx 1.2\cdot10^{-9}$ à
+     $N = 128$ : 1000 fois plus strict que le pseudo-code.
+  2. *Il coûte cher.* L'approche du stationnaire est exponentielle ($u - u_\infty \propto e^{-\lambda t}$) : chaque
+     facteur 10 de sévérité en plus ajoute une durée fixe $\ln 10/\lambda$ de temps simulé, et à $N = 128$ chaque
+     unité de temps demande déjà ~800 pas.
+  3. *Il peut ne jamais être atteint.* Le gradient conjugué s'arrête à tol $= 10^{-8}$ (§3) : la pression garde une
+     petite erreur à chaque pas, qui fait « bruiter » $u$. Si ce bruit dépasse $10^{-9}$, l'écart $u^{n+1}-u^n$
+     plafonne au-dessus du seuil et la boucle ne s'arrête pas.
+  - Un critère sur $\partial_t u$ demanderait donc un seuil plus grand (par ex. $10^{-4}$), ce qui revient à choisir
+    nous-mêmes une valeur absente du pseudo-code. Et il ne réglerait pas le vrai problème (le $\lambda$ inconnu).
+
+### Décision : une seule règle d'arrêt pour les Parties A, B et C
+
+- **Règle** (celle du pseudo-code, identique pour M1 et M2) : on s'arrête dès que
+  - $\max|u^{n+1}-u^n| < 10^{-6}$ et $t > 10$ ⇒ écoulement **stationnaire** ;
+  - **ou** $t \ge t_\text{final}$ ⇒ pas de stationnaire atteint.
+- **Ce que donne la même règle selon la partie** :
+  - A ($Re = 100$) et B ($Re \le 5000$) : stationnaires, l'arrêt se fait par le critère. $t_\text{final}$ ne sert que
+    de garde-fou ; l'atteindre est un signal d'alerte à signaler.
+  - C ($Re > Re_c$) : schéma centré périodique ⇒ arrêt à $t_\text{final}$ (choisi pour couvrir plusieurs périodes de
+    $K(t)$ une fois le régime établi) ; l'upwind, lui, doit rester stationnaire et s'arrêter par le critère.
+    On sait **lequel des deux arrêts** a joué : c'est déjà un résultat (stationnaire ou non).
+- **Validation du seuil $10^{-6}$, une seule fois, dans le cas le plus défavorable** : critère le plus lâche
+  ($N = 128$, plus petit $\Delta t$) et amortissement le plus lent (plus haut $Re$ stationnaire, $Re = 5000$).
+  On prolonge ce calcul jusqu'à $\max|u^{n+1}-u^n| < 10^{-7}$ et on compare les profils de $u$ au centre :
+  - écart très petit devant l'écart à Ghia ⇒ $10^{-6}$ suffit pour **tous** les cas stationnaires de A et B
+    (ils sont moins défavorables) ;
+  - sinon ⇒ passer à $10^{-7}$ partout.
+  Au début de la Partie A, on peut faire le même test à $Re = 100$, $N = 128$ (peu coûteux) pour avancer sans attendre B.
 
 ## 3. Tolérance du gradient conjugué
 

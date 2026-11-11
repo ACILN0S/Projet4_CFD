@@ -10,11 +10,11 @@
 Vérification du Poisson discret sur des solutions connues : on choisit $\phi$, on donne $f = \Delta\phi$ au
 solveur, on compare (gradient conjugué arrêté à $10^{-10}$, donc son erreur d'arrêt est négligeable).
 
-| Cas | Pente observée | Lecture |
-| --- | --- | --- |
+| Cas                                                           | Pente observée                   | Lecture                                                                                                                                    |
+| ------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Dirichlet $(x^2-1)(y^2-1)$ sur $[-1,1]^2$ (workshop 11.1) | aucune (erreur $\sim 10^{-12}$) | le laplacien 5 points est **exact** sur ce polynôme ($\partial^4\phi = 0$) : le code est juste, mais ce cas ne mesure pas l'ordre |
-| Dirichlet $\sin(\pi x)\sin(\pi y)$ | **2,00** | ordre 2 attendu |
-| Neumann $\cos(\pi x)\cos(\pi y)$ | **≈ 1** (0,82 puis 0,92) | ordre 1, erreur $\approx 2.3h$ à $2.7h$ |
+| Dirichlet $\sin(\pi x)\sin(\pi y)$                          | **2,00**                    | ordre 2 attendu                                                                                                                            |
+| Neumann $\cos(\pi x)\cos(\pi y)$                            | **≈ 1** (0,82 puis 0,92)   | ordre 1, erreur $\approx 2.3h$ à $2.7h$                                                                                               |
 
 ## 2. Pourquoi l'ordre 1
 
@@ -63,8 +63,8 @@ vitesses d'ordre 1, et ce sont les vitesses (profils vs Ghia) qui comptent pour 
 
 Critère de bascule (étapes 2 et 3, pente de l'écart aux profils de vitesse) :
 
-| M1 | M2 | Suspect | Action |
-| --- | --- | --- | --- |
-| ≈ 1 | ≈ 2 | Neumann d'ordre 1 sur $p$ | passer à l'option 2, justifié par la mesure |
-| faible | faible | singularités des coins du couvercle | garder l'ordre 1, l'expliquer |
-| ≈ 2 | ≈ 2 | — | garder l'ordre 1, l'expliquer à l'oral avec la figure du Poisson |
+| M1     | M2     | Suspect                              | Action                                                            |
+| ------ | ------ | ------------------------------------ | ----------------------------------------------------------------- |
+| ≈ 1   | ≈ 2   | Neumann d'ordre 1 sur $p$          | passer à l'option 2, justifié par la mesure                     |
+| faible | faible | singularités des coins du couvercle | garder l'ordre 1, l'expliquer                                     |
+| ≈ 2   | ≈ 2   | —                                   | garder l'ordre 1, l'expliquer à l'oral avec la figure du Poisson |

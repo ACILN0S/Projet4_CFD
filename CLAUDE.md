@@ -7,7 +7,7 @@ Ordre de priorité : énoncé > PLAN.md > ce fichier.
 ## 0. Deux règles qui priment sur tout
 
 1. **Strict minimum.** Faire seulement ce que l'énoncé exige : 2 méthodes, Parties A/B/C, K et P.
-   Pas de bonus (tests unitaires, bilan d'énergie, Richardson, FFT, sauvegarde/reprise, Numba…)
+   Pas de bonus (tests unitaires, bilan d'énergie, Richardson, FFT, sauvegarde/reprise…)
    sauf demande explicite. Avant d'ajouter quoi que ce soit : « l'énoncé l'exige-t-il ? »
 2. **Uniquement des idées du cours** (poly *Numerical Methods*, Vicquelin & Vié 2025-26).
    Pas de grille décalée MAC, pas de cellules fantômes, pas de DCT/DST, pas de RK3-SSP/QUICK.
@@ -35,7 +35,13 @@ L'utilisateur (et son équipe) doit pouvoir réexpliquer chaque ligne à l'oral.
 ## 3. Code
 
 - Fichiers : `cavity/common.py`, `cavity/projection.py`, `cavity/psi_omega.py` + 3 notebooks (A, B, C).
-- numpy vectorisé par tranches (`f[1:-1, 1:-1]`), pas de Numba. Bibliothèques : numpy, scipy, matplotlib.
+- **Numba** (`@njit(cache=True)`, recommandé par le prof ; décision du 2026-11-11) pour les noyaux coûteux
+  (opérateurs, gradient conjugué), en boucles `for i, j` explicites qui reprennent les formules du cours ;
+  pas de `fastmath` (mêmes résultats qu'en numpy aux arrondis près). numpy pour le reste.
+  Bibliothèques : numpy, numba, scipy, matplotlib. Les calculs indépendants (plusieurs N, plusieurs Re)
+  tournent en parallèle, un processus par cas.
+- Environnement CFD : `MKL_THREADING_LAYER=SEQUENTIAL` à fixer avant d'importer numpy (sinon toute
+  algèbre linéaire numpy, donc matplotlib, fait planter le processus sur cette machine).
 - Français pour docstrings, commentaires et rapport ; identifiants en anglais.
 - **Commentaires abondants** : en-tête de fichier (rôle, méthode, partie) ; docstring par fonction
   (équation discrétisée, formes des tableaux, section du cours) ; un commentaire *quoi/pourquoi* par bloc.
