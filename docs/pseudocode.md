@@ -62,13 +62,19 @@ tant que non stationnaire (ou t < t_final) :
     v* = v + dt * ( -(u ∂x v + v ∂y v) + ν lap(v) )
     CL : u*, v* = valeurs de paroi (0 partout, u* = U_t(t+dt) au couvercle)
 
-    # 2) pression :  Δp = (1/dt) ∇·u*      (∇· centré ordre 2 aux nœuds intérieurs)
-    p = solve_neumann( (∂x u* + ∂y v*) / dt , p0 = p )   # gradient conjugué, moyenne de p nulle
+    # 2) pression :  Δp = (1/dt) ∇·u*
+    #    Neumann d'ordre 2 par nœuds fantômes (docs/adr/0002 §6) : inconnues = TOUS les nœuds,
+    #    miroir pair p_{-1} = p_1, lignes pondérées par les trapèzes (½ paroi, ¼ coin) pour la symétrie,
+    #    moyenne PONDÉRÉE retirée du second membre et de p.
+    #    ∇·u* à tous les nœuds : centré à l'intérieur, décentré d'ordre 2 aux parois (np.gradient edge_order=2)
+    p = solve_neumann_ghost( (∂x u* + ∂y v*) / dt , p0 = p )   # gradient conjugué
 
     # 3) correction :  u = u* - dt ∇p      (∇p centré, nœuds intérieurs seulement)
     u = u* - dt ∂x p ;  v = v* - dt ∂y p
     t += dt
-    stationnaire  ⇔  max|u_new - u_old| < 1e-6 et t > 10   (rampe terminée)
+    R = ||(u_new - u_old)/dt , (v_new - v_old)/dt||_2   (résidu stationnaire, nœuds intérieurs)
+    stationnaire  ⇔  t ≥ t_ref = 10 et R < ε R(t_ref),  ε = 1e-2   (réduction relative, comme au Projet 1)
+                     (fixé par le test de docs/adr/0003 §2 ; remplace max|u_new - u_old| < 1e-6)
     tous les n pas : enregistrer t, K, P
 ```
 

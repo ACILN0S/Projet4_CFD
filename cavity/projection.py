@@ -4,41 +4,43 @@ Inconnues : u, v, p aux nœuds de la grille colocalisée (formes (N+1, N+1), [i,
 Un pas de temps (Euler explicite, cours §3.1) :
     1) prédiction sans pression : u* = u + Δt [ -(u·∇)u + ν Δu ]          (intérieur)
     2) pression                 : Δp = (1/Δt) ∇·u*,  ∂p/∂n = 0, moyenne nulle
+                                  (∂p/∂n = 0 d'ordre 2 par nœuds fantômes : docs/adr/0002, §6)
     3) correction               : u^{n+1} = u* - Δt ∇p                    (intérieur)
 Conditions aux limites : u = v = 0 sur les parois fixes, u = U_t(t), v = 0 au couvercle,
 u = 0 aux deux nœuds de coin du couvercle (ils appartiennent aux parois fixes).
 
-Toutes les briques (opérateurs, Poisson, pas de temps, K, P) viennent de cavity/common.py.
+Toutes les briques (opérateurs, Poisson, pas de temps, boucle en temps, critère d'arrêt, K, P)
+viennent de cavity/common.py ; ce fichier ne contient que le pas de temps propre à M1.
 """
-import time
-
 import numpy as np
 
-from cavity.common import (advection, kinetic_energy, laplacian, lid_power, lid_velocity,
-                           make_grid, solve_poisson, time_step)
+from cavity.common import (advection, apply_velocity_bc, laplacian, lid_velocity, make_grid,
+                           march_to_steady, solve_poisson, time_step)
 
 
-def apply_velocity_bc(u, v, u_lid):
-    """Impose (en place) les vitesses de paroi.
+def divergence_all_nodes(u, v, h):
+    """Divergence ∂u/∂x + ∂v/∂y à TOUS les nœuds, parois comprises (forme (N+1, N+1)).
 
-    Parois fixes : u = v = 0. Couvercle (j = N) : u = U_t sur les nœuds intérieurs i = 1..N-1,
-    v = 0. Les deux coins du couvercle gardent u = 0 (choix du PLAN, §2 « Nœud de coin »).
+    Nécessaire avec la Neumann à nœuds fantômes : les nœuds de paroi sont des inconnues de la pression,
+    il y faut donc le second membre (docs/adr/0002, §6). Chaque dérivée est :
+      - centrée d'ordre 2 aux nœuds où les deux voisins existent (cours §2.2, éq. 2.9) ;
+      - décentrée d'ordre 2 aux deux extrémités, (-3 f_0 + 4 f_1 - f_2)/2h et (3 f_N - 4 f_{N-1} + f_{N-2})/2h
+        (workshop 11.2, éq. 11.10 ; même formule que pour ∂u/∂y dans P).
+    C'est exactement np.gradient(..., edge_order=2). Le long d'une paroi, la dérivée tangentielle est donc
+    centrée (valeurs de paroi connues) et la dérivée normale décentrée ; aux coins, les deux sont décentrées.
+    Aux nœuds intérieurs, on retrouve la divergence centrée de la version d'ordre 1.
+    Aux deux coins du couvercle, u saute de U_t à 0 : la divergence y vaut ~U_t/h (singularité de coin).
     """
-    u[0, :] = 0.0
-    u[-1, :] = 0.0
-    u[:, 0] = 0.0
-    u[1:-1, -1] = u_lid
-    v[0, :] = 0.0
-    v[-1, :] = 0.0
-    v[:, 0] = 0.0
-    v[:, -1] = 0.0
+    return np.gradient(u, h, axis=0, edge_order=2) + np.gradient(v, h, axis=1, edge_order=2)
 
 
-def projection_step(u, v, p, t, dt, h, nu, scheme, cg_tol):
+def projection_step(u, v, p, t, dt, h, nu, scheme, cg_tol, pressure_bc="neumann_ghost"):
     """Avance (u, v, p) de t à t + Δt par la méthode de projection.
 
     Entrées : u, v, p de forme (N+1, N+1) au temps t (non modifiés) ; Δt, h, ν ;
-              scheme = "centered" ou "upwind" (advection) ; cg_tol = tolérance du gradient conjugué.
+              scheme = "centered" ou "upwind" (advection) ; cg_tol = tolérance du gradient conjugué ;
+              pressure_bc = "neumann_ghost" (ordre 2, nœuds fantômes, retenu : docs/adr/0002) ou
+              "neumann" (ordre 1, φ_0 = φ_1, version d'origine gardée pour la comparaison).
     Sorties : u, v, p au temps t + Δt (nouveaux tableaux) et le nombre d'itérations du gradient conjugué.
     """
     # 1) Prédiction (Euler explicite, cours §3.1) : advection + diffusion, sans pression.
@@ -51,15 +53,18 @@ def projection_step(u, v, p, t, dt, h, nu, scheme, cg_tol):
     apply_velocity_bc(u_star, v_star, lid_velocity(t + dt))
 
     # 2) Pression : Δp = (1/Δt) ∇·u* (cours §7.3.2, « discrete pressure equation »).
-    #    Divergence centrée d'ordre 2 aux nœuds intérieurs (cours §2.2, éq. 2.9) ; elle utilise
-    #    les valeurs de paroi de u* (en particulier U_t au couvercle).
-    div_star = ((u_star[2:, 1:-1] - u_star[:-2, 1:-1])
-                + (v_star[1:-1, 2:] - v_star[1:-1, :-2])) / (2.0 * h)
+    #    Ordre 2 (fantômes) : second membre à tous les nœuds, divergence d'ordre 2 aux parois.
+    #    Ordre 1 : second membre aux nœuds intérieurs seulement (divergence centrée).
+    #    Dans les deux cas, la divergence utilise les valeurs de paroi de u* (U_t au couvercle).
+    div_star = divergence_all_nodes(u_star, v_star, h)
+    if pressure_bc == "neumann":
+        div_star = div_star[1:-1, 1:-1]
     # Gradient conjugué Neumann, départ à chaud depuis la pression du pas précédent (cours §4.7.3).
-    p_new, n_iter = solve_poisson(div_star / dt, h, "neumann", phi0=p, tol=cg_tol)
+    p_new, n_iter = solve_poisson(div_star / dt, h, pressure_bc, phi0=p, tol=cg_tol)
 
     # 3) Correction : u^{n+1} = u* - Δt ∇p, gradient centré aux nœuds intérieurs seulement
-    #    (les valeurs de paroi sont imposées, on ne les corrige pas).
+    #    (les valeurs de paroi sont imposées, on ne les corrige pas). Avec les fantômes, p aux nœuds de
+    #    paroi est une vraie inconnue d'ordre 2, utilisée ici par le gradient des nœuds voisins des parois.
     u_new = u_star
     v_new = v_star
     u_new[1:-1, 1:-1] -= dt * (p_new[2:, 1:-1] - p_new[:-2, 1:-1]) / (2.0 * h)
@@ -68,61 +73,39 @@ def projection_step(u, v, p, t, dt, h, nu, scheme, cg_tol):
 
 
 def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
-                   steady_tol=1e-6, t_min=10.0, t_max=200.0):
+                   residual_tol=1e-2, t_ref=10.0, t_max=200.0, pressure_bc="neumann_ghost"):
     """Lance M1 depuis le repos jusqu'au stationnaire (ou jusqu'à t_max).
 
     Entrées :
         n_cells    : N (grille (N+1) × (N+1)) ; reynolds : Re, donc ν = 1/Re ;
         scheme     : advection "centered" (défaut) ou "upwind" ;
-        cg_tol     : tolérance (résidu relatif) du gradient conjugué, cf. docs/adr/0003 ;
-        steady_tol : arrêt quand max|u^{n+1} - u^n| et max|v^{n+1} - v^n| < steady_tol ...
-        t_min      : ... et t > t_min (la rampe du couvercle 1 - e^{-t} doit être terminée) ;
-        t_max      : garde-fou ; si atteint, le résultat est marqué converged = False.
-    Sortie : dictionnaire avec la grille, les champs finaux, l'historique (t, K, P, itérations du
-             gradient conjugué) et les informations d'exécution (Δt, nombre de pas, temps de calcul,
-             max|∂u/∂t| à l'arrêt, converged).
+        pressure_bc : "neumann_ghost" (défaut, ordre 2) ou "neumann" (ordre 1, pour comparaison) ;
+        cg_tol     : tolérance (résidu relatif) du gradient conjugué, cf. docs/adr/0003 §3 ;
+        residual_tol : ε du critère d'arrêt sur le résidu stationnaire (comme au Projet 1, question b) :
+                       arrêt dès que ||R(t)|| < ε ||R(t_ref)||, avec R = (u^{n+1} - u^n)/Δt
+                       (common.steady_residual) ; ε = 1e-2 fixé par le test de l'ADR 0003 §2 ;
+        t_ref        : instant de référence et début de la surveillance du résidu (t_ref = 10 :
+                       rampe du couvercle 1 - e^{-t} terminée) ; on ne prend pas t = 0 car le fluide
+                       part du repos (résidu initial nul) ;
+        t_max        : garde-fou ; si atteint, le résultat est marqué converged = False.
+    Sortie : dictionnaire avec la grille, les champs finaux (u, v, p), l'historique (t, K, P, itérations
+             du gradient conjugué, ||R||) et les informations d'exécution (Δt, nombre de pas, temps de
+             calcul, ||R(t_ref)||, converged = arrêt par le critère et non par t_max).
     """
     nu = 1.0 / reynolds
     x, y, h = make_grid(n_cells)
     dt = time_step(h, nu, scheme)                 # limites de stabilité du cours §5.3
 
     # Départ du repos : u = v = p = 0 (et U_t(0) = 0, cohérent avec la rampe).
-    u = np.zeros((n_cells + 1, n_cells + 1))
-    v = np.zeros_like(u)
-    p = np.zeros_like(u)
+    zeros = np.zeros((n_cells + 1, n_cells + 1))
+    state = {"u": zeros.copy(), "v": zeros.copy(), "p": zeros.copy()}
 
-    hist_t, hist_k, hist_p, hist_iter, hist_change = [], [], [], [], []
-    t = 0.0
-    n_steps = 0
-    change = np.inf
-    wall_start = time.perf_counter()
+    def step(s, t):
+        u, v, p, n_iter = projection_step(s["u"], s["v"], s["p"], t, dt, h, nu, scheme, cg_tol,
+                                          pressure_bc)
+        return {"u": u, "v": v, "p": p}, n_iter
 
-    while t < t_max:
-        u_new, v_new, p, n_iter = projection_step(u, v, p, t, dt, h, nu, scheme, cg_tol)
-        t += dt
-        n_steps += 1
-        # Variation sur un pas (même idée que le résidu des méthodes itératives, cours §4.3.2)
-        change = max(np.abs(u_new - u).max(), np.abs(v_new - v).max())
-        u, v = u_new, v_new
-
-        # Diagnostics imposés par l'énoncé, à chaque pas (coût négligeable devant le Poisson)
-        hist_t.append(t)
-        hist_k.append(kinetic_energy(u, v, h))
-        hist_p.append(lid_power(u, h, nu, lid_velocity(t)))
-        hist_iter.append(n_iter)
-        hist_change.append(change)            # pour suivre l'approche du stationnaire
-
-        if not np.isfinite(change):
-            raise FloatingPointError(f"M1 diverge à t = {t:.4f} (N = {n_cells}, Re = {reynolds}, Δt = {dt:.3e})")
-        if change < steady_tol and t > t_min:
-            break
-
-    converged = change < steady_tol and t > t_min
-    return {
-        "method": "M1", "scheme": scheme, "N": n_cells, "Re": reynolds, "nu": nu,
-        "x": x, "y": y, "h": h, "dt": dt, "u": u, "v": v, "p": p,
-        "t": np.array(hist_t), "K": np.array(hist_k), "P": np.array(hist_p),
-        "cg_iterations": np.array(hist_iter), "change": np.array(hist_change),
-        "n_steps": n_steps, "t_final": t, "wall_time": time.perf_counter() - wall_start,
-        "max_change": change, "max_dudt": change / dt, "converged": converged, "cg_tol": cg_tol,
-    }
+    state, info = march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max,
+                                  label=f"M1 (N = {n_cells}, Re = {reynolds})")
+    return {"method": "M1", "scheme": scheme, "pressure_bc": pressure_bc, "N": n_cells, "Re": reynolds,
+            "nu": nu, "x": x, "y": y, "h": h, "dt": dt, "cg_tol": cg_tol, **state, **info}

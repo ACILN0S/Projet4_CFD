@@ -1,7 +1,8 @@
 # ADR 0003 — Pas de temps, critère de stationnarité et tolérance du gradient conjugué (M1, Partie A)
 
-- **Statut** : proposé (2026-11-11, avant l'étape 2), à confirmer par les mesures de l'étape 2.
-- **Code concerné** : `cavity/common.py` (`time_step`, `solve_poisson`), `cavity/projection.py`.
+- **Statut** : accepté (2026-11-11). Critère d'arrêt : **résidu stationnaire relatif** (§2, décision finale),
+  $\varepsilon = 10^{-2}$, $t_\text{ref} = 10$ ; tol $= 10^{-8}$ confirmée (§3, résultat). Test de $\varepsilon$ à refaire à $Re = 5000$ (Partie B).
+- **Code concerné** : `cavity/common.py` (`time_step`, `solve_poisson`, `steady_residual`), `cavity/projection.py`.
 
 ## 1. Pourquoi le pas de temps est limité (cours §5.3)
 
@@ -82,7 +83,7 @@ surtout $\Delta t \le 2\nu$ (centré) qui coûtent cher. Enjeu de la Partie C.
   - Un critère sur $\partial_t u$ demanderait donc un seuil plus grand (par ex. $10^{-4}$), ce qui revient à choisir
     nous-mêmes une valeur absente du pseudo-code. Et il ne réglerait pas le vrai problème (le $\lambda$ inconnu).
 
-### Décision : une seule règle d'arrêt pour les Parties A, B et C
+### Première décision (abandonnée, gardée pour l'historique) : une seule règle d'arrêt pour les Parties A, B et C
 
 - **Règle** (celle du pseudo-code, identique pour M1 et M2) : on s'arrête dès que
   - $\max|u^{n+1}-u^n| < 10^{-6}$ et $t > 10$ ⇒ écoulement **stationnaire** ;
@@ -100,6 +101,59 @@ surtout $\Delta t \le 2\nu$ (centré) qui coûtent cher. Enjeu de la Partie C.
     (ils sont moins défavorables) ;
   - sinon ⇒ passer à $10^{-7}$ partout.
   Au début de la Partie A, on peut faire le même test à $Re = 100$, $N = 128$ (peu coûteux) pour avancer sans attendre B.
+
+### Résultat du test à $Re = 100$, $N = 128$ (2026-11-11, `notebooks/A_Re100.ipynb` §2.b)
+
+- Arrêt à $10^{-6}$ : $t = 11.15$ ; prolongé jusqu'à $10^{-7}$ : $t = 15.46$.
+- Écart entre les deux profils : $1.3\cdot10^{-3}$ en $u$ et en $v$, soit **24 %** (u) et **50 %** (v) de l'écart à Ghia.
+  Ce n'est pas très petit ⇒ **seuil $10^{-7}$ partout** (défaut de `run_projection`).
+- Effet visible : l'écart à Ghia en $v$ passe de $2.7\cdot10^{-3}$ à $3.4\cdot10^{-3}$ ; la pente à Ghia de $v$ (2.56 avec $10^{-6}$)
+  était en partie un artefact de l'arrêt trop tôt.
+- À refaire à $Re = 5000$ en Partie B (cas le plus défavorable) : vérifier que $10^{-7}$ y suffit.
+
+### Décision finale (2026-11-11) : critère sur le résidu stationnaire, comme au Projet 1
+
+**Pourquoi on change.** À haut $Re$, le critère sur $\max|u^{n+1}-u^n|$ se dégrade deux fois : $\Delta t$ diminue (à $Re = 5000$,
+$N = 128$ : $\Delta t \approx 3.2\cdot10^{-4}$ par la limite du centré, donc seuil sur $|\partial_t u|$ ~4 fois plus lâche qu'à $Re = 100$) et $\lambda$
+diminue. Les références (vérifié dans `doc_ref/`) arrêtent sur le **résidu des équations stationnaires** : Erturk et al.
+(2005) $\max|R| < 10^{-10}$ (leurs éq. 22-23) ; Ghia et al. (1982) norme des résidus $< 10^{-4}$ (multigrille).
+
+**Règle** (identique pour M1 et M2, `common.steady_residual`) :
+- résidu stationnaire $R^n = (u^{n+1}-u^n)/\Delta t$, composantes $u$ et $v$, nœuds intérieurs, **norme L2** (Projet 1, question b).
+  Avec Euler explicite, $R^n$ est exactement le membre de droite discret ($-$advection $+\ \nu\Delta u - \nabla p$) : de combien le
+  champ viole les équations stationnaires. Il ne dépend pas de $\Delta t$ ;
+- comme au Projet 1, on demande une **réduction relative** : $\|R\| < \varepsilon\,\|R(t_\text{ref})\|$. La référence n'est pas le
+  résidu initial, nul puisque le fluide part du repos, mais celui à $t_\text{ref} = 10$ (rampe du couvercle terminée,
+  $1 - e^{-10} \approx 1$) ; la surveillance commence à $t_\text{ref}$ (remplace le « $t > 10$ » de la première règle) ;
+- **ou** $t \ge t_\text{final}$ ⇒ pas de stationnaire (Partie C), inchangé.
+
+**Réponse aux objections du § ci-dessus** (« Pourquoi pas un critère directement sur $\partial_t u$ ») : (1) sévérité — le seuil est
+relatif et fixé par la mesure, pas $10^{-6}$ en absolu ; (2) coût — chaque décade de $\varepsilon$ coûte $\ln 10/\lambda \approx 4.3$ unités
+de temps à $Re = 100$ ; (3) bruit du gradient conjugué — aucun plancher observé jusqu'à $\varepsilon = 10^{-6}$ ($N = 32$).
+
+**Choix de $\varepsilon$** (`notebooks/A_Re100.ipynb` §2.b) : on calcule $\varepsilon = 10^{-2}, 10^{-3}, 10^{-4}$ ; à $N = 128$, on compare les
+profils de $\varepsilon$ et $\varepsilon/10$. « Très petit devant l'écart à Ghia » est chiffré à **au plus 10 %** ; on retient le plus grand
+$\varepsilon$ qui le respecte.
+
+**Résultat à $Re = 100$** :
+- $\varepsilon = 10^{-2}$ vs $10^{-3}$ : $2.4\cdot10^{-5}$, soit **0.7 %** de l'écart à Ghia ⇒ **$\varepsilon = 10^{-2}$ retenu** (défaut de `run_projection`).
+- Les trois grilles s'arrêtent au même instant ($t \approx 18.6$) : le critère ne dépend plus de $\Delta t$.
+- $\lambda \approx 0.53$ sur les trois grilles (propriété de l'écoulement).
+- **À refaire à $Re = 5000$** (Partie B) : $\lambda$ plus petit, et $\|R(t_\text{ref})\|$ y mesure un écoulement encore loin de l'établi.
+
+### $\varepsilon$ selon le Reynolds (Partie B)
+
+- **Ce qui doit être uniforme, c'est l'exigence, pas la valeur de $\varepsilon$** : à chaque $Re$, l'erreur d'arrêt doit rester $\le 10\,\%$ de
+  l'erreur de discrétisation (écart à Ghia). $\varepsilon$ ne règle que l'arrêt, pas le modèle ; un $\varepsilon$ validé par le test
+  ($\varepsilon$ vs $\varepsilon/10$) ne change pas les résultats. Un même $\varepsilon$ n'a d'ailleurs pas le même sens à tous les $Re$ :
+  $\|R(t_\text{ref})\|$ est grand quand l'écoulement est encore loin de l'établi à $t_\text{ref}$ (haut $Re$).
+- **Règle** : faire le test à $Re = 5000$ (cas le plus défavorable) et **appliquer cet $\varepsilon$ à tous les $Re$ de la Partie B** (une
+  seule valeur, simple à expliquer ; surcoût négligeable aux $Re$ plus faibles, qui sont les calculs rapides).
+- Dans ce test, vérifier aussi **$P$** ($\varepsilon$ vs $\varepsilon/10$) : l'erreur d'arrêt sur $P$ doit être négligeable devant les écarts entre $Re$,
+  sinon elle biaiserait la pente de $P(Re)$. (À $Re = 100$ : variation relative de $P$ < $10^{-5}$.)
+- **Exception** : si l'$\varepsilon$ de $Re = 5000$ est trop coûteux (chaque décade coûte $\ln 10/\lambda$), on prend un $\varepsilon$ par $Re$, chacun
+  validé par le test, et on le justifie.
+- Partie C : sans objet pour le centré (périodique ⇒ arrêt à $t_\text{final}$) ; seul l'upwind (stationnaire attendu) utilise $\varepsilon$.
 
 ## 3. Tolérance du gradient conjugué
 
@@ -150,3 +204,6 @@ erreur en $O(h^2)$ sans rapport avec tol.
   - Si c'est le cas : une tol fixe suffit pour toutes nos grilles, inutile de la faire varier avec $N$.
   - Sinon : passer à tol $= 10^{-10}$ (surcoût modéré : le nombre d'itérations croît comme $\log(1/\text{tol})$, et le
     départ à chaud le limite encore).
+- **Résultat** (2026-11-11, `notebooks/A_Re100.ipynb` §2.g, critère sur le résidu $\varepsilon = 10^{-2}$) : écart entre tol $10^{-8}$ et
+  $10^{-10}$ $\approx 10^{-10}$, contre $4\cdot10^{-3}$ d'écart à Ghia ⇒ **tol $= 10^{-8}$ conservée** pour toutes les grilles
+  (tol $10^{-10}$ : ~1.8 fois plus d'itérations du gradient conjugué par pas).

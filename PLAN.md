@@ -113,18 +113,19 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
 
 ### Étape 1 — Code commun + M1 (workshop 15)
 
-- [x] Grille, $U_t(t)$, laplacien et advection (centrée / upwind) en tranches numpy.
+- [x] Grille, $U_t(t)$, laplacien et advection (centrée / upwind) (noyaux Numba).
 - [x] Poisson par gradient conjugué sans matrice (Dirichlet pour $\psi$ ; Neumann + moyenne nulle pour $p$).
   Vérification rapide sur une solution connue : Dirichlet, Poisson du workshop 11 ($\phi = (x^2-1)(y^2-1)$) ;
   Neumann, $\phi = \cos(\pi x)\cos(\pi y)$ (dérivée normale nulle aux parois, moyenne nulle).
-- [ ] Pas de temps M1, boucle en temps, critère stationnaire $\max|u^{n+1}-u^n| < 10^{-6}$ (même idée
-  que le résidu des méthodes itératives, §4.3.2).
-- [ ] Diagnostics $K$ (somme des trapèzes, workshop 8) et $P$.
+- [x] Pas de temps M1, boucle en temps, critère stationnaire $\max|u^{n+1}-u^n| < 10^{-6}$ (même idée
+  que le résidu des méthodes itératives, §4.3.2). Remplacé par un critère sur le résidu stationnaire relatif
+  $\|R\| < 10^{-2}\,\|R(t=10)\|$, comme au Projet 1 (ADR 0003 §2, décision finale).
+- [x] Diagnostics $K$ (somme des trapèzes, workshop 8) et $P$.
 
 ### Étape 2 — Partie A ($Re = 100$)
 
-- [ ] M1 avec $N = 32, 64, 128$ : profils $u(0.5, y)$ et $v(x, 0.5)$ vs Ghia.
-- [ ] **Grille justifiée** : écart max à Ghia en fonction de $h$ (log-log, pente ≈ ordre du schéma,
+- [x] M1 avec $N = 32, 64, 128$ : profils $u(0.5, y)$ et $v(x, 0.5)$ vs Ghia.
+- [x] **Grille justifiée** (pente entre grilles ≈ 1.4 pour M1 ; $N = 128$ retenu, cf. notebook A §2.d) : écart max à Ghia en fonction de $h$ (log-log, pente ≈ ordre du schéma,
   comme au workshop 9) ; on retient le $N$ où l'écart ne bouge plus.
   **Attention** : Ghia a sa propre erreur (grille 129×129, ordre 2, pas d'étude de convergence chiffrée,
   cf. `ref_data/README.md`) ⇒ un palier de l'écart à Ghia peut être **son** erreur. On trace donc aussi
@@ -135,18 +136,19 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
   miroir (cf. « Pourquoi pas de cellules fantômes ») et le justifier par cette mesure.
   Déjà mesuré à l'étape 1 : le Poisson Neumann seul est d'ordre 1 ; analyse et options (décentré
   3 points vs fantômes) dans [docs/adr/0002-neumann-pression.md](docs/adr/0002-neumann-pression.md).
-- [ ] $K(t)$, $P(t)$ jusqu'au stationnaire.
-- [ ] **Justification du maillage par les coins** (sans calcul en plus : on réutilise $N = 32, 64, 128$) :
+- [x] $K(t)$, $P(t)$ jusqu'au stationnaire.
+- [x] **Justification du maillage par les coins** (fait : +0.026 puis +0.029 par doublement, $c \approx 4\nu$) (sans calcul en plus : on réutilise $N = 32, 64, 128$) :
   tracer $P_\text{stationnaire}$ en fonction de $\ln N$. Attendu : une droite (croissance en $\ln N$, pas de
   palier) ⇒ $P$ ne sert **pas** à choisir $N$ ; on choisit $N$ sur les profils de Ghia et sur $K$, qui
   convergent, et on fige ce $N$ pour comparer les $P$.
-- [ ] Lecture de la pente de convergence : si **M1 et M2** ont une pente faible, suspect = coins ; si seulement
-  M1, suspect = Neumann d'ordre 1 (voir ci-dessous).
+- [x] Lecture de la pente de convergence : si **M1 et M2** ont une pente faible, suspect = coins ; si seulement
+  M1, suspect = Neumann d'ordre 1 (voir ci-dessous). **Résultat** : M1 ≈ 1.4, M2 ≈ 2.0 ⇒ suspect = Neumann
+  d'ordre 1 (notebook A §3.c, ADR 0002 §5) ; décision sur l'option 2 en attente.
 
 ### Étape 3 — M2 et validation croisée
 
-- [ ] M2 sur la même grille, mêmes briques.
-- [ ] $Re = 100$ : M1, M2 et Ghia sur la même figure.
+- [x] M2 sur la même grille, mêmes briques.
+- [x] $Re = 100$ : M1, M2 et Ghia sur la même figure.
 
 ### Étape 4 — Partie B ($Re$ = 400, 1000, 3200, 5000 : colonnes disponibles chez Ghia)
 
