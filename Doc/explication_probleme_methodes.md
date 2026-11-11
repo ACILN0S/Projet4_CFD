@@ -137,8 +137,14 @@ Cela fait $(N+1)\times(N+1)$ points.
 - **Vitesse** : $u = v = 0$ sur les parois fixes ; $u = U_t(t)$ et $v = 0$ sur le couvercle.
 - **Pression** : la physique ne fournit pas de condition naturelle. On prend $\partial p/\partial n = 0$,
   discrétisé par une formule décentrée d'ordre 1, par exemple $p_0 = p_1$ (§4.2.2.2).
-- **Subtilité** : avec du Neumann partout, $p$ n'est défini **qu'à une constante près**, et la matrice est
-  singulière. On **fixe la valeur de $p$ en un point** pour lever l'indétermination.
+- **Subtilité** : avec du Neumann partout, $p$ n'est défini **qu'à une constante près** : si $p$ est
+  solution, $p + C$ l'est aussi. Comme le demandent les slides du projet, on impose une **moyenne nulle** :
+  à la fin de chaque itération du solveur, on retire $\text{mean}(p)$ à $p$. Cela ne change pas $\nabla p$,
+  donc pas la vitesse corrigée.
+- **Compatibilité** : une solution n'existe que si la moyenne du second membre est nulle (en continu,
+  $\int \nabla\cdot\mathbf{u}^* \,dS = \oint \mathbf{u}^*\cdot\mathbf{n}\,dl = 0$ car les parois sont
+  imperméables). En discret, ce n'est vrai qu'approximativement : on retire donc aussi la moyenne du
+  second membre avant de résoudre.
 
 ---
 
@@ -218,12 +224,20 @@ $$\Delta f \approx \frac{f_{i+1,j} + f_{i-1,j} + f_{i,j+1} + f_{i,j-1} - 4f_{i,j
   $u\,\partial f/\partial x \approx u\,(f_i - f_{i-1})/h$. Elle est très robuste, mais introduit une
   **viscosité numérique**, ce qui est grave à haut $Re$ (voir 2.4).
 
-**Le Poisson (pour $p$ ou pour $\psi$) : solveur direct creux (§4.3.1).** On discrétise $\Delta$ avec le
-schéma à 5 points, ce qui donne un grand système linéaire $A\,x = b$. La matrice $A$ est creuse : au plus 5
-coefficients non nuls par ligne. Surtout, **$A$ ne change jamais**, puisque la grille et les conditions aux
-limites restent les mêmes. On la **factorise une seule fois** (décomposition LU, `scipy.sparse.linalg.splu`).
-Ensuite, à chaque pas, seul le second membre $b$ change, et la résolution se réduit à deux remontées
-triangulaires, ce qui est très rapide.
+**Le Poisson (pour $p$ ou pour $\psi$) : gradient conjugué (§4.7.3, workshop 11.3).** On discrétise
+$\Delta$ avec le schéma à 5 points, ce qui donne un grand système linéaire $A\,x = b$. On le résout par une
+méthode **itérative** : le gradient conjugué, qui s'applique car $-A$ est symétrique définie positive.
+Comme dans le workshop 11.3, il est écrit **sans matrice** : on n'a besoin que d'appliquer le laplacien à un
+champ, ce qui se fait en une ligne numpy. Deux raisons de ce choix parmi les méthodes du cours :
+
+- c'est la plus rapide des méthodes itératives vues en cours (complexité $O(n^{3/2})$ contre $O(n^2)$ pour
+  Jacobi, Gauss-Seidel et SOR, tableau 4.1) ;
+- Gauss-Seidel et SOR mettent à jour les nœuds **un par un** : ils demandent des boucles Python, très
+  lentes, alors que le gradient conjugué se vectorise entièrement.
+
+À chaque pas de temps, on part de la solution du pas précédent, qui est déjà proche de la nouvelle : il faut
+alors peu d'itérations. Pour $p$, on retire la moyenne à chaque itération, comme le demandent les slides.
+C'est sans effet sur le résidu, puisque le laplacien d'une constante est nul.
 
 **$\partial u/\partial y$ au couvercle, pour calculer $P$.** On ne peut pas utiliser une différence
 centrée, puisqu'il n'y a pas de nœud au-dessus du couvercle. On prend une formule **décentrée d'ordre 2**
@@ -280,7 +294,7 @@ exactement le « choix malheureux » expliqué par le cours que l'énoncé deman
 2. La difficulté est la pression, qui n'a pas d'équation propre : **M1** la calcule par un Poisson pour
    corriger la vitesse, **M2** l'élimine en passant à $\psi$–$\omega$.
 3. Les deux méthodes partagent les mêmes briques : Euler explicite, laplacien à 5 points, Poisson résolu
-   par une LU factorisée une seule fois.
+   par gradient conjugué (avec moyenne nulle pour $p$).
 4. Le choix de l'advection est le cœur de l'histoire. Le schéma centré est précis mais impose
    $\Delta t \le 2/Re$. L'upwind est robuste mais trop diffusif : il fait « voir » un $Re$ bien plus faible
    et tue les oscillations.

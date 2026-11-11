@@ -27,7 +27,9 @@ L'utilisateur (et son équipe) doit pouvoir réexpliquer chaque ligne à l'oral.
   ω de paroi par Taylor (Thom).
 - Euler explicite (§3.1) ; diffusion centrée ordre 2 ; advection **centrée** ou **upwind 1**
   (choix sage / malheureux, expliqué par l'équation modifiée §5.4.2) ; repli RK3 (§3.9.4) en Partie C si besoin.
-- Poisson : matrice creuse factorisée une fois par `scipy.sparse.linalg.splu` (solveur direct, §4.3.1).
+- Poisson : gradient conjugué sans matrice (§4.7.3, workshop 11.3), départ = solution du pas précédent.
+  Pression : Neumann partout, moyenne du second membre retirée (compatibilité) et `p -= p.mean()` à chaque
+  itération (exigé par les slides du prof).
 - `Δt` = limites de stabilité du cours (§5.3) : Fourier 2D, CFL upwind, `C² ≤ 2Fo` pour le centré.
 
 ## 3. Code
@@ -51,6 +53,7 @@ L'utilisateur (et son équipe) doit pouvoir réexpliquer chaque ligne à l'oral.
 
 ## 5. À garder en tête
 
-- Coins du couvercle : saut de vitesse ⇒ `P` dépend un peu de `N` ; comparer les `P` à `N` fixé.
+- Coins du couvercle : saut de vitesse ⇒ `P` diverge en continu et croît en `ln N` en discret ; comparer
+  les `P` à `N` fixé ; pente de `P(Re)` biaisée vers plus fort que −1/2 (terme de coin ∝ 1/Re). Détail : PLAN.md §2.
 - Upwind à haut `Re` : `D = ½ U h (1 − C) ≫ ν` ⇒ `Re` effectif faible ⇒ pas d'oscillation attendue.
 - Pour chaque résultat, comparer à l'attendu physique et signaler un écart plutôt que l'ajuster.
