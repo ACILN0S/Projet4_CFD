@@ -113,8 +113,8 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
 
 ### Étape 1 — Code commun + M1 (workshop 15)
 
-- [ ] Grille, $U_t(t)$, laplacien et advection (centrée / upwind) en tranches numpy.
-- [ ] Poisson par gradient conjugué sans matrice (Dirichlet pour $\psi$ ; Neumann + moyenne nulle pour $p$).
+- [x] Grille, $U_t(t)$, laplacien et advection (centrée / upwind) en tranches numpy.
+- [x] Poisson par gradient conjugué sans matrice (Dirichlet pour $\psi$ ; Neumann + moyenne nulle pour $p$).
   Vérification rapide sur une solution connue : Dirichlet, Poisson du workshop 11 ($\phi = (x^2-1)(y^2-1)$) ;
   Neumann, $\phi = \cos(\pi x)\cos(\pi y)$ (dérivée normale nulle aux parois, moyenne nulle).
 - [ ] Pas de temps M1, boucle en temps, critère stationnaire $\max|u^{n+1}-u^n| < 10^{-6}$ (même idée
@@ -133,6 +133,8 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
 - [ ] **Signal à surveiller** (après l'étape 3) : si la pente vaut ≈ 1 pour M1 mais ≈ 2 pour M2, le
   premier suspect est la Neumann d'ordre 1 sur $p$ ⇒ alors seulement, passer à la Neumann d'ordre 2 par
   miroir (cf. « Pourquoi pas de cellules fantômes ») et le justifier par cette mesure.
+  Déjà mesuré à l'étape 1 : le Poisson Neumann seul est d'ordre 1 ; analyse et options (décentré
+  3 points vs fantômes) dans [docs/adr/0002-neumann-pression.md](docs/adr/0002-neumann-pression.md).
 - [ ] $K(t)$, $P(t)$ jusqu'au stationnaire.
 - [ ] **Justification du maillage par les coins** (sans calcul en plus : on réutilise $N = 32, 64, 128$) :
   tracer $P_\text{stationnaire}$ en fonction de $\ln N$. Attendu : une droite (croissance en $\ln N$, pas de
