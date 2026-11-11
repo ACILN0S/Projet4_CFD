@@ -85,18 +85,23 @@ def psi_omega_step(omega, psi, u, v, t, dt, h, nu, scheme, cg_tol):
 
 
 def run_psi_omega(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
-                  residual_tol=1e-2, t_ref=10.0, t_max=200.0):
+                  residual_tol=1e-2, t_ref=10.0, t_max=200.0, dt=None):
     """Lance M2 depuis le repos jusqu'au stationnaire (ou jusqu'à t_max).
 
     Mêmes entrées, même pas de temps (common.time_step : ω obéit à une équation d'advection-diffusion
     de même ν), même critère d'arrêt (résidu stationnaire sur u et v, docs/adr/0003 §2) et mêmes
-    diagnostics que M1 (run_projection) : seule la méthode change.
+    diagnostics que M1 (run_projection) : seule la méthode change. dt : None ⇒ Δt de stabilité ;
+    sinon Δt imposé, plus petit que cette limite (témoin de l'étude « convergence en Δt »).
     Sortie : dictionnaire avec la grille, les champs finaux (ω, ψ, u, v), l'historique et les
              informations d'exécution (mêmes clés que M1).
     """
     nu = 1.0 / reynolds
     x, y, h = make_grid(n_cells)
-    dt = time_step(h, nu, scheme)                 # limites de stabilité du cours §5.3
+    dt_stable = time_step(h, nu, scheme)          # limites de stabilité du cours §5.3
+    if dt is None:
+        dt = dt_stable
+    elif dt > dt_stable:
+        raise ValueError(f"Δt = {dt:.3e} dépasse la limite de stabilité {dt_stable:.3e} (N = {n_cells}, Re = {reynolds})")
 
     # Départ du repos : ω = ψ = u = v = 0.
     zeros = np.zeros((n_cells + 1, n_cells + 1))

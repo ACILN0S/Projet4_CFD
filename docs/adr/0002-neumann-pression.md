@@ -1,7 +1,8 @@
 # ADR 0002 — Condition de Neumann sur la pression (M1) : ordre 1, et comment passer à l'ordre 2
 
-- **Statut** : option 2 (nœuds fantômes) **appliquée** (2026-11-11, §6) ; l'ordre de M1 ne remonte pas, cause identifiée
-  (erreur de projection en $\Delta t$, §7) ; **décision en attente** sur les options du §7.4.
+- **Statut** : accepté (2026-11-11). Option 2 (nœuds fantômes) appliquée (§6) ; elle rend M1 d'ordre 2 en espace (vérifié à
+  $\Delta t$ fixe, §7.3) ; la pente ≈ 1 mesurée avec le $\Delta t$ de stabilité vient de l'erreur de projection, qui dépend de $\Delta t$ (identité
+  exacte, §7.3 ; ordre ≈ 0.65 en $\Delta t$). Décision §7.4 : options 1 et 2, réalisées.
 - **Mesure à l'origine** : `notebooks/A_Re100.ipynb` §1.c, `figures/A_poisson_convergence.png`,
   `results/A_poisson_verification.csv`.
 
@@ -125,7 +126,7 @@ Code : `cavity/common.py` (`solve_poisson(..., bc="neumann_ghost")`), `cavity/pr
 - **Correction de vitesse** : inchangée ($u^{n+1} = u^* - \Delta t\,\nabla p$ aux nœuds intérieurs, gradient centré) ; mais $p$ aux nœuds de
   paroi, utilisé par le gradient des nœuds voisins des parois, est maintenant une vraie inconnue d'ordre 2.
 
-## 7. Résultat sur M1 à $Re = 100$ (2026-11-11) : l'ordre ne remonte pas — cause identifiée, décision en attente
+## 7. Résultat sur M1 à $Re = 100$ (2026-11-11) : pente ≈ 1 avec le $\Delta t$ de stabilité, ordre 2 à $\Delta t$ fixe
 
 ### 7.1 Mesure
 
@@ -154,24 +155,53 @@ Les fantômes divisent l'erreur de M1 par ~3 à 5, mais **la pente tombe à ≈ 
    dépendance est **du même ordre que l'écart entre grilles** : l'étude de grille de M1 mesure en grande partie un effet de $\Delta t$.
    À $N$ fixé, elle est à peu près proportionnelle à $\Delta t$.
 
-### 7.3 Explication proposée (cohérente avec les mesures, non démontrée)
+### 7.3 Ce qui est démontré, ce qui est réfuté (2026-11-11)
 
-- Dans la projection du cours (§7.3.2, pression **absente** de la prédiction), l'état stationnaire vérifie
-  $\nabla_h\cdot u = \Delta t\,(\Delta_h - \nabla_h\cdot\nabla_h)\,p$ : la divergence discrète n'est nulle que si le laplacien résolu (compact, avec la
-  condition $\partial p/\partial n = 0$) coïncide avec la divergence du gradient utilisé dans la correction. Ce n'est pas le cas sur grille
-  colocalisée, et surtout près des parois, où $\partial p/\partial n = 0$ n'est **pas** la vraie condition physique (sur une paroi fixe,
-  $\partial p/\partial n = \nu\,\partial^2 u_n/\partial n^2 \ne 0$). D'où une source de masse parasite $\propto \Delta t$ concentrée près des parois.
-- Ici $\Delta t \propto h^2$ (limite de Fourier, $N \ge 64$) : l'effet relatif varie comme $\Delta t/h \propto h$ ⇒ **ordre 1 en maillage**, ce qu'on
-  mesure avec les fantômes. Avec l'ordre 1 sur $p$, cette erreur s'ajoute à celle du décalage de paroi (§2).
-- C'est une limite **de la méthode du cours** (et des slides : $\partial P/\partial n = 0$), pas de la Neumann : M2 n'a pas ce défaut.
+**Démontré (identité exacte).** Notations : $F$ advection + diffusion, $G$ gradient centré aux nœuds intérieurs et $\tilde G p$ ce
+gradient prolongé par 0 aux parois (la correction n'y est pas appliquée), $D$ la divergence (`divergence_all_nodes`), $\Delta_h$ le
+laplacien à fantômes que résout le gradient conjugué. Un pas : $u^* = u + \Delta t F(u)$ (intérieur), $\Delta_h p = D(u^*)/\Delta t$,
+$u^{n+1} = u^* - \Delta t\,\tilde G p$. Au stationnaire $u^{n+1} = u^n = u$ : $F(u) = Gp$ (la quantité de mouvement stationnaire est exacte, sans $\Delta t$),
+donc $u^* = u + \Delta t\,\tilde G p$, et l'équation de pression donne
+$$D(u) = \Delta t\,(\Delta_h - D\tilde G)\,p .$$
+La divergence stationnaire est **proportionnelle à $\Delta t$** et à l'écart entre le laplacien résolu et celui qu'applique la correction.
+Vérifié numériquement : $\max|D(u) - \Delta t\,E p| \sim 10^{-4}$ contre $\max|D(u)| \sim 10^{2}$ (erreur d'arrêt). M2 n'a pas d'étape de projection :
+son stationnaire ne dépend pas de $\Delta t$ (mesuré : $10^{-7}$). C'est une propriété de la projection **non incrémentale du cours** (§7.3.2).
 
-### 7.4 Options (à décider par l'utilisateur)
+**Réfuté : l'explication « $\Delta t/h$, donc ordre 1, à cause de $\partial p/\partial n = 0$ non physique ».** Elle prédisait $E p \approx c\,g/h$ sur les parois
+($g$ = gradient normal de pression au premier nœud intérieur). Mesure (parois, tiers central) : $E p \approx$ 1.2, 1.3, 1.9 pour
+$N = 32, 64, 128$, à peu près constant, alors que $g/h$ double ; $E p/(g/h)$ = 0.70, 0.37, 0.27. Le plus grand $E p$ est aux **coins du
+couvercle**. Et l'erreur ne varie pas en $\Delta t/h$ : à $N$ fixé, une division de $\Delta t$ par 2 donne la même variation relative à $N = 32$
+et à $64$ ($\approx 1.0\,\Delta t$ fantômes, $1.9\,\Delta t$ ordre 1). (Précision ultérieure, notebook A §2.e : avec trois $\Delta t$ à $N = 64$, l'ordre observé
+en $\Delta t$ est **≈ 0.65**, pas 1 ; l'erreur n'est donc pas exactement $C\,\Delta t$.)
+**On ne peut donc pas affirmer que la Neumann non physique est la cause** ; on sait seulement que c'est l'écart $\Delta_h - D\tilde G$, qui mêle
+le laplacien compact/large de la grille colocalisée, le traitement des parois et les coins. Lequel domine : non déterminé.
 
-1. **Garder les fantômes et l'expliquer** : erreur 3 à 5 fois plus petite qu'avec l'ordre 1, ordre ≈ 1 en maillage dû à l'erreur de
-   projection en $\Delta t$ ; M2 sert de référence d'ordre 2. Strict minimum, tout reste dans le cours.
-2. **Mesurer en plus la convergence en $\Delta t$** de M1 (par ex. $\Delta t$, $\Delta t/2$, $\Delta t/4$ à $N = 64$) pour chiffrer cette erreur à l'oral.
-   Reste dans le cours ; coût modéré.
-3. **Projection incrémentale** (on garde $-\nabla p^n$ dans la prédiction et on résout le Poisson pour l'incrément de pression) :
-   l'état stationnaire ne dépendrait plus de $\Delta t$. **Hors du cours** (le poly ne présente que la version non incrémentale) :
-   seulement si l'utilisateur l'autorise.
-4. Revenir à l'ordre 1 : sans intérêt (erreurs plus grandes, même diagnostic).
+**D'où venait la pente ≈ 1 (diagnostic 3, $\Delta t$ fixé à celui de $N = 128$ pour les trois grilles)** :
+
+| | pente $u$ | pente $v$ |
+| --- | --- | --- |
+| M1 fantômes, $\Delta t$ fixe | **1.91** | 3.53 (écarts ~$5\cdot10^{-4}$, peu fiable) |
+| M1 ordre 1, $\Delta t$ fixe | 1.66 | 1.55 |
+
+- Avec $\Delta t$ fixe, la part qui dépend de $\Delta t$ ($E_{\Delta t}$) est la même sur toutes les grilles et disparaît des écarts entre grilles :
+  **les fantômes rendent bien M1 d'ordre 2 en espace** ; l'ordre 1 de la Neumann d'origine se voit encore (1.6).
+- Avec le $\Delta t$ de stabilité, $\Delta t$ est divisé par 2.56 puis par 4 (CFL à $N = 32$, Fourier ensuite) et $E_{\Delta t}$ change d'une grille à l'autre ;
+  comme elle domine les écarts entre grilles, la pente mesurée (≈ 1) est un **artefact de la suite des $\Delta t$**, pas un ordre 1 en $h$.
+- **Convergence en $\Delta t$** (notebook A §2.e, $N = 64$, $\Delta t_0$, $\Delta t_0/2$, $\Delta t_0/4$) : écarts $1.8\cdot10^{-3}$ puis $1.1\cdot10^{-3}$, rapport 1.55 ⇒ ordre
+  observé en $\Delta t$ **≈ 0.65** (pas 1 : le facteur $(\Delta_h - D\tilde G)p$ dépend lui-même de $\Delta t$ ; non expliqué plus avant). M2 : $10^{-7}$.
+- À $N = 128$, l'écart M1 − M2 ($\approx 4\cdot10^{-3}$) est surtout cette part $E_{\Delta t}$ de M1.
+
+### 7.4 Options — **décision (utilisateur, 2026-11-11) : 1 et 2**
+
+Réalisé : M1 garde les fantômes (défaut de `run_projection`) ; le notebook A §2.e chiffre l'erreur de projection (convergence en
+$\Delta t$, étude de grille à $\Delta t$ fixe) et le §3.c compare les trois variantes (M1 ordre 1, M1 fantômes, M2). `run_projection` et
+`run_psi_omega` acceptent un $\Delta t$ imposé (plus petit que la limite de stabilité) pour ces études.
+
+1. **Garder les fantômes et l'expliquer** : M1 est d'ordre 2 en espace (vérifié à $\Delta t$ fixe), plus une erreur de projection qui dépend
+   de $\Delta t$, propre à la méthode du cours, qui domine à $N = 128$ ; M2 sert de référence sans cette erreur. Strict minimum, tout dans le cours.
+2. **Chiffrer l'erreur en $\Delta t$ dans le notebook** (convergence en $\Delta t$ à $N$ fixé, et étude de grille à $\Delta t$ fixe comme ci-dessus) :
+   c'est ce qui permet de séparer proprement les deux erreurs à l'oral. Reste dans le cours ; coût modéré.
+3. **Projection incrémentale** (on garde $-\nabla p^n$ dans la prédiction et on résout le Poisson pour l'incrément) : au stationnaire,
+   l'incrément est nul et $D(u^*) = 0$ avec $u^* = u$, donc la part $E_{\Delta t}$ disparaîtrait. **Hors du cours** : seulement si l'utilisateur l'autorise.
+   (Non retenue.)
+4. Revenir à l'ordre 1 : sans intérêt (moins précis, ordre spatial ≈ 1.6 à $\Delta t$ fixe).

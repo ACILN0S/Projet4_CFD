@@ -73,7 +73,7 @@ def projection_step(u, v, p, t, dt, h, nu, scheme, cg_tol, pressure_bc="neumann_
 
 
 def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
-                   residual_tol=1e-2, t_ref=10.0, t_max=200.0, pressure_bc="neumann_ghost"):
+                   residual_tol=1e-2, t_ref=10.0, t_max=200.0, pressure_bc="neumann_ghost", dt=None):
     """Lance M1 depuis le repos jusqu'au stationnaire (ou jusqu'à t_max).
 
     Entrées :
@@ -87,14 +87,21 @@ def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
         t_ref        : instant de référence et début de la surveillance du résidu (t_ref = 10 :
                        rampe du couvercle 1 - e^{-t} terminée) ; on ne prend pas t = 0 car le fluide
                        part du repos (résidu initial nul) ;
-        t_max        : garde-fou ; si atteint, le résultat est marqué converged = False.
+        t_max        : garde-fou ; si atteint, le résultat est marqué converged = False ;
+        dt           : None (défaut) ⇒ Δt des limites de stabilité (common.time_step) ; sinon Δt imposé,
+                       PLUS PETIT que cette limite (études « Δt fixe » et « convergence en Δt » du
+                       notebook A : l'état stationnaire de M1 dépend de Δt, docs/adr/0002 §7.3).
     Sortie : dictionnaire avec la grille, les champs finaux (u, v, p), l'historique (t, K, P, itérations
              du gradient conjugué, ||R||) et les informations d'exécution (Δt, nombre de pas, temps de
              calcul, ||R(t_ref)||, converged = arrêt par le critère et non par t_max).
     """
     nu = 1.0 / reynolds
     x, y, h = make_grid(n_cells)
-    dt = time_step(h, nu, scheme)                 # limites de stabilité du cours §5.3
+    dt_stable = time_step(h, nu, scheme)          # limites de stabilité du cours §5.3
+    if dt is None:
+        dt = dt_stable
+    elif dt > dt_stable:
+        raise ValueError(f"Δt = {dt:.3e} dépasse la limite de stabilité {dt_stable:.3e} (N = {n_cells}, Re = {reynolds})")
 
     # Départ du repos : u = v = p = 0 (et U_t(0) = 0, cohérent avec la rampe).
     zeros = np.zeros((n_cells + 1, n_cells + 1))

@@ -131,11 +131,13 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
   cf. `ref_data/README.md`) ⇒ un palier de l'écart à Ghia peut être **son** erreur. On trace donc aussi
   l'écart entre nos grilles successives, $\max|u_N - u_{2N}|$ sur la ligne médiane (indépendant de toute
   référence), dont la pente donne notre ordre observé.
-- [ ] **Signal à surveiller** (après l'étape 3) : si la pente vaut ≈ 1 pour M1 mais ≈ 2 pour M2, le
+- [x] **Signal à surveiller** (après l'étape 3) : si la pente vaut ≈ 1 pour M1 mais ≈ 2 pour M2, le
   premier suspect est la Neumann d'ordre 1 sur $p$ ⇒ alors seulement, passer à la Neumann d'ordre 2 par
   miroir (cf. « Pourquoi pas de cellules fantômes ») et le justifier par cette mesure.
   Déjà mesuré à l'étape 1 : le Poisson Neumann seul est d'ordre 1 ; analyse et options (décentré
   3 points vs fantômes) dans [docs/adr/0002-neumann-pression.md](docs/adr/0002-neumann-pression.md).
+  **Fait** : signal observé (M1 ≈ 1.4, M2 ≈ 2) ⇒ fantômes appliqués ; M1 devient d'ordre 2 en espace, mais garde une erreur
+  de projection qui dépend de $\Delta t$ (ordre ≈ 0.65), chiffrée dans le notebook A §2.e (ADR 0002 §6–7).
 - [x] $K(t)$, $P(t)$ jusqu'au stationnaire.
 - [x] **Justification du maillage par les coins** (fait : +0.026 puis +0.029 par doublement, $c \approx 4\nu$) (sans calcul en plus : on réutilise $N = 32, 64, 128$) :
   tracer $P_\text{stationnaire}$ en fonction de $\ln N$. Attendu : une droite (croissance en $\ln N$, pas de
@@ -143,7 +145,7 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
   convergent, et on fige ce $N$ pour comparer les $P$.
 - [x] Lecture de la pente de convergence : si **M1 et M2** ont une pente faible, suspect = coins ; si seulement
   M1, suspect = Neumann d'ordre 1 (voir ci-dessous). **Résultat** : M1 ≈ 1.4, M2 ≈ 2.0 ⇒ suspect = Neumann
-  d'ordre 1 (notebook A §3.c, ADR 0002 §5) ; décision sur l'option 2 en attente.
+  d'ordre 1 (notebook A §3.c, ADR 0002 §5) ⇒ fantômes appliqués (voir « Signal à surveiller »).
 
 ### Étape 3 — M2 et validation croisée
 
