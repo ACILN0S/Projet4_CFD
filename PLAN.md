@@ -154,20 +154,34 @@ $u$ reste borné mais n'a pas de limite, et $\partial_y u$, $\omega$, $p$ se com
 
 ### Étape 4 — Partie B ($Re$ = 400, 1000, 3200, 5000 : colonnes disponibles chez Ghia)
 
-- [ ] $N = 128$ (contrôle à $N = 64$ sur un cas). Lignes de courant (iso-$\psi$) : le tourbillon
-  principal se recentre, des tourbillons de coin apparaissent puis grossissent.
-- [ ] Profils vs Ghia. Ghia utilise 129×129 jusqu'à $Re = 3200$ et 257×257 à $Re = 5000$ : à $N = 128$,
+Notebook `notebooks/B_sweep_Re.ipynb` (2026-11-12) : M1 et M2, $N = 64$ et $128$, $\varepsilon = 10^{-2}$.
+
+- [x] $N = 128$ (contrôle à $N = 64$ pour tous les cas). Lignes de courant (iso-$\psi$) : le tourbillon
+  principal se recentre, BL et BR grossissent, TL apparaît entre $Re = 1000$ et $3200$ (comme Ghia).
+- [x] Profils vs Ghia. Ghia utilise 129×129 jusqu'à $Re = 3200$ et 257×257 à $Re = 5000$ : à $N = 128$,
   on est à peu près à sa résolution pour $Re \le 3200$, mais **deux fois moins fin** que lui à $Re = 5000$
-  (un écart plus grand y est attendu, à commenter).
-- [ ] Rien chez Ghia ni chez Erturk sur $P$ ou $K$ (calculs stationnaires) : la validation de $P(Re)$ repose
+  (un écart plus grand y est attendu, à commenter). Résultat : $N = 128$ pas convergé en maillage à $Re \ge 3200$.
+- [x] Rien chez Ghia ni chez Erturk sur $P$ ou $K$ (calculs stationnaires) : la validation de $P(Re)$ repose
   sur la cohérence M1/M2 et sur la loi d'échelle.
-- [ ] $P(Re)$ en log-log et pente par régression linéaire. Attendu : $P \propto Re^{-1/2}$ à grand $Re$
+- [x] $P(Re)$ en log-log et pente par régression linéaire. Attendu : $P \propto Re^{-1/2}$ à grand $Re$
   (couche limite d'épaisseur $\delta \propto Re^{-1/2}$, cf. workshop 12.3 : $\delta_{99} \propto \sqrt{x}$).
-- [ ] **Robustesse de la pente** : faire la régression de $P(Re)$ à $N = 64$ **et** à $N = 128$. Si la pente
+  Résultat : pente globale $\approx -0.7$, pentes locales qui tendent vers $-1/2$ (M2, $N = 128$ : $-0.54$ à $Re = 5000$).
+- [x] **Robustesse de la pente** : faire la régression de $P(Re)$ à $N = 64$ **et** à $N = 128$. Si la pente
   bouge peu, elle est fiable ; si elle est plus forte que $-1/2$ ou varie avec $N$, l'expliquer par le terme
-  de coin $\propto Re^{-1}\ln N$ (cf. « Singularités aux coins du couvercle »).
+  de coin $\propto Re^{-1}\ln N$ (cf. « Singularités aux coins du couvercle »). Résultat : écart de pente $0.01$–$0.02$.
 - [ ] Remarque à faire dans le rendu : $P$ diverge en continu (coins), donc on compare toujours les $P$
   à $N$ fixé.
+
+**À faire (prochaine session)** :
+
+- [ ] **Relancer $Re = 3200$ et $5000$ avec $\varepsilon = 10^{-3}$** (M1 et M2, $N = 64$ et $128$ : 8 calculs, ~3–4 h,
+  PC sans mise en veille). Le test de l'ADR 0003 échoue à $Re = 5000$ (M1, $N = 64$) : $\varepsilon = 10^{-2} \to 10^{-3}$ change
+  les profils de 57 % de l'écart à Ghia et $K$ de 8 % ; $P$ ne bouge pas. Mode lent $\lambda \approx 0.014$.
+  Pour la règle des 10 % : l'écart $10^{-3} \to 10^{-4}$ devrait valoir ~6 % (décroissance exponentielle), à vérifier.
+  Dans le notebook B, passer `EPS` à $10^{-3}$ pour $Re \ge 3200$ (les fichiers `results/B_*_res1e-03.npz` seront relus).
+- [ ] Revoir $t_\text{ref} = 10$ à haut $Re$ : il tombe en plein transitoire (bosse du résidu), et l'instant d'arrêt varie de
+  $t = 61$ à $175$ d'un calcul à l'autre au même $Re$.
+- [ ] Après la relance, mettre à jour les « Lecture » du notebook B (§1.b, 2.b, 4, 5 surtout) et l'ADR 0003 (statut du test à $Re = 5000$).
 
 ### Étape 5 — Partie C ($Re > 8000$)
 
