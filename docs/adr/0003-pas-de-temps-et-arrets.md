@@ -1,7 +1,8 @@
 # ADR 0003 — Pas de temps, critère de stationnarité et tolérance du gradient conjugué (M1, Partie A)
 
 - **Statut** : accepté (2026-11-11). Critère d'arrêt : **résidu stationnaire relatif** (§2, décision finale),
-  $\varepsilon = 10^{-2}$, $t_\text{ref} = 10$ ; tol $= 10^{-8}$ confirmée (§3, résultat). Test de $\varepsilon$ à refaire à $Re = 5000$ (Partie B).
+  $\varepsilon = 10^{-2}$, $t_\text{ref} = 10$ en Partie A ; tol $= 10^{-8}$ confirmée (§3, résultat). **Partie B (2026-11-13) : $\varepsilon = 10^{-3}$,
+  $t_\text{ref} = 30$**, choisis au cas le plus défavorable, $Re = 5000$ (§2, « Résultat du test à $Re = 5000$ ») ; pas à $\|R\| = 0$ ignorés (§2, « Correction »).
 - **Code concerné** : `cavity/common.py` (`time_step`, `solve_poisson`, `steady_residual`), `cavity/projection.py`.
 
 ## 1. Pourquoi le pas de temps est limité (cours §5.3)
@@ -154,6 +155,81 @@ $\varepsilon$ qui le respecte.
 - **Exception** : si l'$\varepsilon$ de $Re = 5000$ est trop coûteux (chaque décade coûte $\ln 10/\lambda$), on prend un $\varepsilon$ par $Re$, chacun
   validé par le test, et on le justifie.
 - Partie C : sans objet pour le centré (périodique ⇒ arrêt à $t_\text{final}$) ; seul l'upwind (stationnaire attendu) utilise $\varepsilon$.
+
+### Résultat du test à $Re = 5000$ (2026-11-13) : $\varepsilon = 10^{-3}$, $t_\text{ref} = 30$ pour toute la Partie B
+
+**Méthode.** Au lieu de comparer $\varepsilon$ et $\varepsilon/10$, un seul calcul long par cas (`scripts/calibration_Re5000.py`) : M1 et M2,
+$N = 64$ et $128$, jusqu'à $t = 1000$ (résidu réduit d'environ $10^7$), avec l'historique de $\|R\|$ et les profils médians toutes les 0.2 unités de temps.
+L'état final sert de référence « exacte » ; pour chaque couple $(t_\text{ref}, \varepsilon)$, on retrouve sur l'historique l'instant où la règle aurait arrêté
+le calcul, et l'écart des profils à cet instant aux profils finaux. Poisson résolu par LU creuse pour ce seul calcul (5 fois plus rapide ;
+écart au gradient conjugué $\sim 10^{-9}$, vérifié ; ADR 0004 §4).
+
+**Résultat** (erreur d'arrêt max sur $u$ et $v$, en % de l'écart à Ghia ; règle : au plus 10 %) :
+
+| Cas | $t_\text{ref} = 10$, $\varepsilon = 10^{-2}$ (ancien) | $t_\text{ref} = 10$, $\varepsilon = 10^{-3}$ | **$t_\text{ref} = 30$, $\varepsilon = 10^{-3}$** | $t_\text{ref} = 10$, $\varepsilon = 10^{-4}$ |
+| --- | --- | --- | --- | --- |
+| M1, $N = 128$ | $t = 98$ : 245 % | $t = 247$ : 40 % | **$t = 427$ : 4.6 %** | $t = 438$ : 4.0 % |
+| M1, $N = 64$ | $t = 151$ : 65 % | $t = 314$ : 9.3 % | **$t = 365$ : 5.1 %** | $t = 508$ : 0.9 % |
+| M2, $N = 128$ | $t = 175$ : 13 % | $t = 274$ : 3.7 % | **$t = 289$ : 3.1 %** | $t = 445$ : 0.5 % |
+
+- L'ancien critère arrête **beaucoup** trop tôt à $Re = 5000$ : le mode lent s'amortit en $\lambda \approx 0.012$ (même valeur pour les deux méthodes et les
+  deux grilles ; les $\lambda \approx 0.03$ estimés auparavant étaient faussés par l'arrêt prématuré).
+- **Décision** : $t_\text{ref} = 30$, $\varepsilon = 10^{-3}$ pour tous les $Re$ de la Partie B. Le cas le plus exigeant est M1, $N = 128$ (écart à Ghia le plus
+  petit, donc barre des 10 % la plus basse). $t_\text{ref} = 30$ sort la référence du transitoire et coûte moins cher que $\varepsilon = 10^{-4}$ à
+  $t_\text{ref} = 10$, avec une marge d'environ 2 sur la règle. Avec ce couple, $P$ varie de moins de $10^{-4}$ en relatif et $K$ de moins de 1.5 %.
+- M2, $N = 64$ est exclu du choix : il converge vers une solution stationnaire fausse ($\psi_\min = -0.021$), même poussé à une réduction de $10^7$
+  (ce n'était donc pas un arrêt prématuré). Analyse : [Doc/partie_B_limites.md](../../Doc/partie_B_limites.md) §2–3.
+- **Limite aux bas $Re$** : à $Re = 100$, l'écoulement est stationnaire bien avant $t = 30$ ; $\|R(30)\|$ est déjà au niveau du bruit du gradient conjugué et
+  ne peut plus être divisé par 1000 : M1, $N = 128$ va jusqu'au garde-fou $t_\text{max}$ (résultat juste, plus convergé que nécessaire).
+
+### Correction (2026-11-15) : un pas où $\|R\| = 0$ exactement ne compte pas
+
+- **Constat** (Partie B) : pour M2, à certains pas, $\|R\| = 0$ **exactement**. Ce sont les pas où le gradient conjugué fait 0 itération : parti de $\psi$ du pas
+  précédent, il est déjà sous sa tolérance relative ($10^{-8}\,\|\omega\|$), donc $\psi$, $u$, $v$ ne bougent pas alors que $\omega$ a évolué. Or $0 < \varepsilon\|R(t_\text{ref})\|$ :
+  **13 calculs M2 sur 23 se sont arrêtés sur un tel pas**, avec un résidu réel encore à 1.3 à 6 fois $10^{-3}\|R(t_\text{ref})\|$ (jusqu'à 130 fois à $Re = 200$,
+  $N = 128$). À $Re = 100$, $\psi$ est figé 97 % du temps et $\|R(30)\| = 0$ : le critère ne pouvait jamais se déclencher.
+- M1 n'est pas touché (sa prédiction change toujours $u$, même quand le Poisson ne fait aucune itération), ni la calibration ci-dessus (LU : pas de pas sans
+  mise à jour).
+- **Correction** (`common.march_to_steady`) : un pas où $\|R\| = 0$ est ignoré, pour la référence $\|R(t_\text{ref})\|$ comme pour le test d'arrêt. Rien d'autre
+  ne change. Les calculs M2 concernés ont été relancés. **Le code d'origine (version livrée) a le même défaut** : appliquer la même ligne
+  (`if t >= t_ref and residual > 0.0:`).
+- **Objection examinée : « si le résidu est nul, le calcul est terminé, on peut s'arrêter »** (question posée à l'oral possible).
+  - *Non pour un $\|R\| = 0$ isolé.* $R$ est mesuré sur $u$, $v$, mais l'inconnue de M2 est $\omega$, qui a bien évolué à ce pas ($\omega^{n+1} \ne \omega^n$) : seul $\psi$
+    n'a pas été mis à jour, parce que l'écart accumulé entre $\omega$ et $\psi$ était encore sous la tolérance du gradient conjugué. Au pas suivant, $\psi$ est remis à jour
+    et $\|R\|$ redevient non nul. Preuves dans les historiques : 1 ou 2 pas à $\|R\| = 0$ par calcul, entourés de pas à $\|R\|$ non nul ; juste avant ce pas, le résidu
+    n'était qu'à 1.3 à 6 fois $10^{-3}\,\|R(t_\text{ref})\|$, et à **0.13** pour M2, $Re = 200$, $N = 128$ (arrêt à $t = 36$ ; relancé, ce calcul n'atteint plus jamais le seuil).
+  - *Oui quand c'est un régime installé* : à $Re = 100$, $\psi$ reste figé 97 % du temps parce que $\omega$ lui-même ne bouge presque plus ; là, le calcul est vraiment
+    terminé. Avec la règle retenue, ces calculs vont jusqu'au garde-fou $t_\text{max} = 1000$ (0.5 à 7 min de calcul en plus, résultat juste).
+  - Options écartées : arrêter sur une suite de $\|R\| = 0$ consécutifs (un seuil de plus à choisir et justifier) ; mesurer le résidu de M2 sur $\omega$ (jamais figé
+    artificiellement, mais M1 et M2 n'auraient plus le même critère et la calibration de $t_\text{ref}$, $\varepsilon$, faite sur $u$, $v$, serait à refaire pour M2).
+    Décision du 2026-11-15 (« pas à $\|R\| = 0$ ignorés ») **remplacée le 2026-11-16** par le paragraphe suivant.
+
+### Résidu de M2 sur $\omega$ (2026-11-16)
+
+- **Décision** : pour M2, le résidu stationnaire est $R = (\omega^{n+1} - \omega^n)/\Delta t$ aux nœuds intérieurs, c'est-à-dire le résidu discret de
+  l'équation que M2 fait évoluer ($-$advection $+\ \nu\Delta\omega$), exactement comme $R = (u^{n+1} - u^n)/\Delta t$ est celui de l'équation de quantité de
+  mouvement pour M1. $\psi$ n'évolue pas : il est déduit de $\omega$ par un Poisson à chaque pas, comme la pression de M1.
+- **Pourquoi pas $\psi$** (proposé d'abord) : $\psi$ est précisément ce qui reste figé quand le gradient conjugué fait 0 itération ; un résidu sur $\psi$
+  aurait le même défaut que celui sur $u$, $v$ (pas à $R = 0$, puis pics quand $\psi$ rattrape deux pas d'un coup).
+- $\omega$ change à **chaque** pas : plus de pas à $R = 0$ (sauf le tout premier, avant $t_\text{ref}$), donc le correctif « pas à $\|R\| = 0$ ignorés » est
+  **retiré** (`common.march_to_steady`) ; un $R$ nul voudrait de nouveau dire « calcul terminé ». Effet visible : à $Re = 100$, M2 s'arrête par le critère
+  ($t \approx 48$ à $N = 32$) au lieu d'aller jusqu'au garde-fou.
+- **Mêmes $t_\text{ref} = 30$, $\varepsilon = 10^{-3}$** : le critère est relatif, et en fin de calcul tous les champs décroissent au rythme du mode le plus lent ;
+  mais le rapport $\|R(t)\|/\|R(30)\|$ dépend du transitoire restant à $t = 30$, qui n'est pas le même pour $\omega$ et pour $u$. **Vérifié** (2026-11-16) :
+  calcul long M2, $N = 128$, $Re = 5000$, résidu sur $\omega$, gradient conjugué, jusqu'à $t = 1000$ (`results/C5000_M2_N128_Romega.npz`, 2.7 h sur Ruche).
+  Son état final coïncide avec celui de la calibration LU du 2026-11-13 à $2.5\cdot10^{-9}$ près sur les profils. Erreur d'arrêt (même mesure que le tableau
+  ci-dessus, en % de l'écart à Ghia) :
+
+  | M2, $N = 128$ | $t_\text{ref} = 30$, $\varepsilon = 10^{-2}$ | **$t_\text{ref} = 30$, $\varepsilon = 10^{-3}$** | $t_\text{ref} = 30$, $\varepsilon = 10^{-4}$ |
+  | --- | --- | --- | --- |
+  | résidu sur $u$, $v$ | $t = 184$ : 10.0 % | $t = 289$ : 2.8 % | $t = 465$ : 0.3 % |
+  | résidu sur $\omega$ | $t = 182$ : 10.0 % | **$t = 266$ : 3.7 %** | $t = 410$ : 0.7 % |
+
+  Le résidu sur $\omega$ arrête un peu plus tôt, mais reste largement sous la règle des 10 % : **$t_\text{ref} = 30$, $\varepsilon = 10^{-3}$ conservés pour M2**.
+  (Les chiffres de la colonne « u, v » diffèrent de quelques dixièmes de point du tableau du 2026-11-13 : profils interpolés aux points de Ghia ici.)
+  Script : `scratchpad/check_omega.py` (non conservé dans le projet).
+- Les 23 calculs M2 de la Partie B ont été relancés avec ce résidu. **Reporté dans la version livrée** (2026-11-19) :
+  `common.steady_residual` sur une liste de champs, et `march_to_steady(..., residual_fields)` avec `("u", "v")` pour M1 et `("omega",)` pour M2.
 
 ## 3. Tolérance du gradient conjugué
 

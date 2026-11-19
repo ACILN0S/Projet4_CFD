@@ -1,0 +1,10 @@
+# Tourbillon principal : psi_min et position du centre (x, y). nan = valeur non publiee.
+# Ghia, Ghia & Shin (1982), Table V (relu sur doc_ref/High_Re_Solutions_for_Incompressible_Flo.pdf) ; grille 129x129 pour Re <= 3200, 257x257 pour Re = 5000.
+# Erturk et al. (2005), Tables 1 et 4 (doc_ref/0411047v3.pdf) : valeur extrapolee de Richardson (grilles 401, 513, 601), en theorie O(h^6).
+# Re,psi_min_ghia,x_ghia,y_ghia,psi_min_erturk
+100,-0.103423,0.6172,0.7344,nan
+400,-0.113909,0.5547,0.6055,nan
+1000,-0.117929,0.5313,0.5625,-0.118942
+2500,nan,nan,nan,-0.121470
+3200,-0.120377,0.5165,0.5469,nan
+5000,-0.118966,0.5117,0.5352,-0.122233

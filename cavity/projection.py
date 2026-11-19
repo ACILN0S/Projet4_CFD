@@ -73,7 +73,7 @@ def projection_step(u, v, p, t, dt, h, nu, scheme, cg_tol, pressure_bc="neumann_
 
 
 def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
-                   residual_tol=1e-2, t_ref=10.0, t_max=200.0, pressure_bc="neumann_ghost", dt=None):
+                   residual_tol=1e-3, t_ref=30.0, t_max=1000.0, pressure_bc="neumann_ghost", dt=None):
     """Lance M1 depuis le repos jusqu'au stationnaire (ou jusqu'à t_max).
 
     Entrées :
@@ -83,10 +83,11 @@ def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
         cg_tol     : tolérance (résidu relatif) du gradient conjugué, cf. docs/adr/0003 §3 ;
         residual_tol : ε du critère d'arrêt sur le résidu stationnaire (comme au Projet 1, question b) :
                        arrêt dès que ||R(t)|| < ε ||R(t_ref)||, avec R = (u^{n+1} - u^n)/Δt
-                       (common.steady_residual) ; ε = 1e-2 fixé par le test de l'ADR 0003 §2 ;
-        t_ref        : instant de référence et début de la surveillance du résidu (t_ref = 10 :
-                       rampe du couvercle 1 - e^{-t} terminée) ; on ne prend pas t = 0 car le fluide
-                       part du repos (résidu initial nul) ;
+                       (common.steady_residual) ; ε = 1e-3 et t_ref = 30 choisis au cas le plus défavorable
+                       (Re = 5000) par un calcul long (docs/adr/0003 §2) ;
+        t_ref        : instant de référence et début de la surveillance du résidu ; t_ref = 30 sort la
+                       référence du transitoire (rampe du couvercle 1 - e^{-t} et mise en rotation) ; on ne
+                       prend pas t = 0 car le fluide part du repos (résidu initial nul) ;
         t_max        : garde-fou ; si atteint, le résultat est marqué converged = False ;
         dt           : None (défaut) ⇒ Δt des limites de stabilité (common.time_step) ; sinon Δt imposé,
                        PLUS PETIT que cette limite (études « Δt fixe » et « convergence en Δt » du
@@ -113,6 +114,6 @@ def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
         return {"u": u, "v": v, "p": p}, n_iter
 
     state, info = march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max,
-                                  label=f"M1 (N = {n_cells}, Re = {reynolds})")
+                                  label=f"M1 (N = {n_cells}, Re = {reynolds})", residual_fields=("u", "v"))
     return {"method": "M1", "scheme": scheme, "pressure_bc": pressure_bc, "N": n_cells, "Re": reynolds,
             "nu": nu, "x": x, "y": y, "h": h, "dt": dt, "cg_tol": cg_tol, **state, **info}

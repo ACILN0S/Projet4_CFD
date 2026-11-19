@@ -18,6 +18,11 @@ y, u_re100 = data[:, 0], data[:, 1]      # colonnes : y, Re100, Re400, Re1000, .
 
 On s'en sert pour valider la Partie A (Re = 100) et pour comparer les profils de la Partie B.
 
+Tourbillon principal (ψ_min, centre) : `primary_vortex.csv`, Ghia Table V et Erturk (Richardson) relus sur les PDF de `doc_ref/`.
+
+Profils d'Erturk et al. (2005), grille 601 × 601 (Tables 6 et 7) : `erturk2005_u_vertical_centerline.csv` et
+`erturk2005_v_horizontal_centerline.csv`, Re = 1000 à 21 000, extraits du PDF par `pdftotext -raw` ; référence plus fine que Ghia.
+
 ### Ce que Ghia a fait (vérifié sur l'article, §3–4)
 
 - **Formulation** ψ–ω (comme notre M2), **calcul stationnaire** (le pas de temps ne sert qu'à relaxer) :
@@ -56,7 +61,7 @@ l'article (`doc_ref/`) : les 119 valeurs de u sont retrouvées ; pour v, deux é
   grossière est donc **numérique**. Nuance : un solveur stationnaire peut converger vers une solution
   stationnaire **instable**, ce qui ne contredit pas Re_c ≈ 8000.
 - Profils u, v sur les lignes médianes en 601×601 (Tables 6–7) : référence plus précise que Ghia pour
-  Re ≥ 1000, si besoin (non extraits ici).
+  Re ≥ 1000 : extraits dans `erturk2005_*_centerline.csv` (voir plus haut).
 
 ## Re critique (Partie C)
 

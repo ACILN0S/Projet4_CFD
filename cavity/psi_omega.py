@@ -11,6 +11,7 @@ Un pas de temps (Euler explicite, cours §3.1) :
     4) ω de paroi          : formule de Thom (développement de Taylor de ψ, outil du cours §2.1)
 Pas de pression, donc pas de condition de Neumann : c'est ce qui rend la comparaison M1 / M2
 utile pour la question de l'ordre de convergence (docs/adr/0002).
+Critère d'arrêt : résidu stationnaire sur ω, R = (ω^{n+1} - ω^n)/Δt (common.steady_residual).
 
 Toutes les briques (opérateurs, Poisson, pas de temps, boucle en temps, critère d'arrêt, K, P)
 viennent de cavity/common.py, comme pour M1 ; ce fichier ne contient que le pas de temps propre à M2.
@@ -85,12 +86,13 @@ def psi_omega_step(omega, psi, u, v, t, dt, h, nu, scheme, cg_tol):
 
 
 def run_psi_omega(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
-                  residual_tol=1e-2, t_ref=10.0, t_max=200.0, dt=None):
+                  residual_tol=1e-3, t_ref=30.0, t_max=1000.0, dt=None):
     """Lance M2 depuis le repos jusqu'au stationnaire (ou jusqu'à t_max).
 
     Mêmes entrées, même pas de temps (common.time_step : ω obéit à une équation d'advection-diffusion
-    de même ν), même critère d'arrêt (résidu stationnaire sur u et v, docs/adr/0003 §2) et mêmes
-    diagnostics que M1 (run_projection) : seule la méthode change. dt : None ⇒ Δt de stabilité ;
+    de même ν), même règle d'arrêt (||R|| < ε ||R(t_ref)||, docs/adr/0003 §2 ; R mesuré sur ω, l'équation
+    que M2 fait évoluer, comme R l'est sur u, v pour M1) et mêmes diagnostics que M1 (run_projection) :
+    seule la méthode change. dt : None ⇒ Δt de stabilité ;
     sinon Δt imposé, plus petit que cette limite (témoin de l'étude « convergence en Δt »).
     Sortie : dictionnaire avec la grille, les champs finaux (ω, ψ, u, v), l'historique et les
              informations d'exécution (mêmes clés que M1).
@@ -113,6 +115,6 @@ def run_psi_omega(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
         return {"omega": omega, "psi": psi, "u": u, "v": v}, n_iter
 
     state, info = march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max,
-                                  label=f"M2 (N = {n_cells}, Re = {reynolds})")
+                                  label=f"M2 (N = {n_cells}, Re = {reynolds})", residual_fields=("omega",))
     return {"method": "M2", "scheme": scheme, "N": n_cells, "Re": reynolds, "nu": nu,
             "x": x, "y": y, "h": h, "dt": dt, "cg_tol": cg_tol, **state, **info}

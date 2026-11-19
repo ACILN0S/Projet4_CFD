@@ -402,27 +402,33 @@ def time_step(h, nu, scheme, safety=0.8):
 # Critère d'arrêt : résidu stationnaire (docs/adr/0003-pas-de-temps-et-arrets.md §2)
 # ---------------------------------------------------------------------------------------------
 
-def steady_residual(u_new, u_old, v_new, v_old, dt):
-    """Norme L2 du résidu stationnaire R = (u^{n+1} - u^n) / Δt, composantes u et v, nœuds intérieurs.
+def steady_residual(new_fields, old_fields, dt):
+    """Norme L2 du résidu stationnaire R = (f^{n+1} - f^n) / Δt, sur les champs que la méthode fait évoluer.
 
-    Pourquoi c'est un résidu : avec Euler explicite, (u^{n+1} - u^n)/Δt vaut exactement le membre de
-    droite discret (-advection + ν Δu - ∇p) évalué sur le champ courant, c'est-à-dire de combien ce
-    champ viole les équations STATIONNAIRES discrètes. R → 0 au stationnaire (même idée que le résidu
-    r = b - A x des méthodes itératives, cours §4.3.2, et que la question b du Projet 1).
-    Contrairement à max|u^{n+1} - u^n|, R ne dépend pas de Δt.
-    Norme L2 comme au Projet 1 : ||R|| = sqrt( Σ (R_u² + R_v²) ) sur les nœuds intérieurs (on exclut les
-    parois, où les vitesses sont imposées et suivent la rampe du couvercle).
+    Entrées : deux listes de tableaux (N+1, N+1), même ordre ; Δt. Sortie : un réel.
+    - M1 fait évoluer u et v : R = (u^{n+1} - u^n)/Δt et (v^{n+1} - v^n)/Δt ;
+    - M2 fait évoluer ω : R = (ω^{n+1} - ω^n)/Δt (ψ, u, v en sont déduits par un Poisson à chaque pas).
+    Pourquoi c'est un résidu : avec Euler explicite, (f^{n+1} - f^n)/Δt vaut exactement le membre de droite
+    discret évalué sur le champ courant, c'est-à-dire de combien ce champ viole les équations STATIONNAIRES
+    discrètes. R → 0 au stationnaire (même idée que le résidu r = b - A x des méthodes itératives, cours
+    §4.3.2, et que la question b du Projet 1). Contrairement à max|f^{n+1} - f^n|, R ne dépend pas de Δt.
+    Pourquoi ω et pas u, v pour M2 : quand le gradient conjugué, parti du ψ précédent, est déjà sous sa
+    tolérance, il fait 0 itération ; ψ, u, v ne bougent pas alors que ω a évolué, et un résidu sur u, v
+    vaudrait 0 à tort (docs/adr/0003 §2, « Résidu de M2 sur ω »).
+    Norme L2 comme au Projet 1, sur les nœuds intérieurs (on exclut les parois, imposées).
     """
-    r_u = (u_new[1:-1, 1:-1] - u_old[1:-1, 1:-1]) / dt
-    r_v = (v_new[1:-1, 1:-1] - v_old[1:-1, 1:-1]) / dt
-    return np.sqrt(np.sum(r_u**2) + np.sum(r_v**2))
+    total = 0.0
+    for f_new, f_old in zip(new_fields, old_fields):
+        r = (f_new[1:-1, 1:-1] - f_old[1:-1, 1:-1]) / dt
+        total += np.sum(r**2)
+    return np.sqrt(total)
 
 
 # ---------------------------------------------------------------------------------------------
 # Boucle en temps commune à M1 et M2 (Euler explicite, cours §3.1)
 # ---------------------------------------------------------------------------------------------
 
-def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label):
+def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label, residual_fields):
     """Avance un état jusqu'au stationnaire (ou jusqu'à t_max), avec la même règle pour M1 et M2.
 
     Entrées :
@@ -431,6 +437,7 @@ def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label):
         state : état initial (fluide au repos) ; h, Δt, ν ;
         residual_tol, t_ref : critère d'arrêt ||R|| < ε ||R(t_ref)|| sur le résidu stationnaire
                 (steady_residual ; docs/adr/0003 §2), surveillé à partir de t_ref ;
+        residual_fields : clés de l'état sur lesquelles mesurer R, ("u", "v") pour M1, ("omega",) pour M2 ;
         t_max : garde-fou ; si atteint, converged = False ; label : nom pour les messages d'erreur.
     Sortie : (état final, dictionnaire d'historique et d'informations d'exécution).
     Diagnostics K et P (énoncé) enregistrés à chaque pas : leur coût est négligeable devant le Poisson.
@@ -446,8 +453,9 @@ def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label):
         new_state, n_iter = step(state, t)
         t += dt
         n_steps += 1
-        # Résidu stationnaire ||R|| = ||(u^{n+1} - u^n)/Δt|| (cours §4.3.2, Projet 1 question b)
-        residual = steady_residual(new_state["u"], state["u"], new_state["v"], state["v"], dt)
+        # Résidu stationnaire ||R|| = ||(f^{n+1} - f^n)/Δt|| (cours §4.3.2, Projet 1 question b)
+        residual = steady_residual([new_state[k] for k in residual_fields],
+                                   [state[k] for k in residual_fields], dt)
         state = new_state
 
         hist_t.append(t)
