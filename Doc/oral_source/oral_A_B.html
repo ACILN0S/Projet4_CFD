@@ -324,7 +324,7 @@ est 3 à 5 fois plus précis. M1 n'est pas exact pour autant : $+1.7$ % sur $\ps
 <div class="qa"><p class="q">Avez-vous testé une meilleure condition de paroi ?</p>
 <p>Oui, à titre de diagnostic : la formule de Woods, $\omega_w = \tfrac32\,\omega_{\text{Thom}} - \tfrac12\,\omega_1$, d'ordre 2 localement. Elle supprime la fausse solution
 de $N = 64$ à $Re = 3200$ ($\psi_{\min}$ passe de $-0.031$ à $-0.099$) et réduit l'erreur partout, ce qui confirme la responsabilité de Thom. Mais elle ne ramène pas
-M2 au niveau de M1, et elle <b>diverge</b> à $Re = 5000$, $N = 64$ (moins stable, comme l'annonce la littérature) : on garde Thom.</p></div>
+M2 au niveau de M1 : à $N = 128$, $Re = 5000$, l'écart à Erturk passe de 0.11 à 0.058, contre 0.014 pour M1 (Thom explique environ la moitié du défaut). Et elle <b>diverge</b> à $Re = 5000$, $N = 64$ (moins stable, comme l'annonce la littérature) : on garde Thom.</p></div>
 
 <div class="qa"><p class="q">Qu'est-ce que la « fausse solution » de M2 à $N = 64$ ?</p>
 <p>Pour $Re \ge 3200$, M2 à $N = 64$ converge vers un état stationnaire où le tourbillon principal a perdu 75 % de son intensité ($\psi_{\min} = -0.03$ au lieu de
@@ -345,7 +345,8 @@ sur 401² à 601² points avec extrapolation de Richardson, donnent $\psi_{\min}
 <div class="qa"><p class="q">À $Re = 5000$, M1 semble s'éloigner de Ghia quand on raffine : pourquoi ?</p>
 <p>C'est l'erreur de Ghia. Par rapport à Erturk, M1 converge régulièrement : écart maximal 0.26, 0.013, 0.005 pour $N = 64$, 128, 256 ; sur $\psi_{\min}$, $+5.8$ %,
 $-2.0$ %, $+0.6$ % (convergence oscillante). Reste une part propre à M1 : à haut $Re$, $\Delta t = 2\nu$ est le même pour toutes les grilles, et sa solution dépend de
-$\Delta t$ (à $Re = 3200$, $N = 64$ : $K = 0.0471$, 0.0476, 0.0479 pour $\Delta t$, $\Delta t/2$, $\Delta t/4$).</p></div>
+$\Delta t$ (à $Re = 3200$, $N = 64$ : $K = 0.0471$, 0.0476, 0.0479 pour $\Delta t$, $\Delta t/2$, $\Delta t/4$). Cette part est petite : diviser $\Delta t$ par 2
+change les profils de 2 à 3·10⁻³ à $N = 128$ et 256, contre environ 10⁻² entre ces deux grilles. Elle compte pour environ un tiers de l'écart de $\psi_{\min}$ à $N = 256$.</p></div>
 
 <div class="qa"><p class="q">Pourquoi la pente globale de $P(Re)$ vaut-elle $-0.7$ et pas $-0.5$ ?</p>
 <p>$P = a\,Re^{-1/2}$ (couche limite) $+\ c\,Re^{-1}\ln N$ (coins). Le second terme pèse aux $Re$ modérés ; les pentes locales passent de $-0.86$ à $-0.54$ pour M2 quand

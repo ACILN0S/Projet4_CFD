@@ -155,6 +155,10 @@ Thom. Calculs complets (Ruche, 2026-11-19) :
 | Re = 1000, N = 128 | 0.457 → 0.459 | 0.014 → 0.011 | −0.116 → −0.116 |
 | Re = 3200, N = 64 | **−0.133 → 0.355** | **0.59 → 0.12** | **−0.031 → −0.099** |
 | Re = 5000, N = 64 | fausse solution → **diverge** (t = 24) | | |
+| Re = 3200, N = 128 | 0.409 → 0.419 (M1 : 0.453) | 0.060 → 0.049 (M1 : 0.040) | −0.110 → −0.112 (M1 : −0.120) |
+| Re = 5000, N = 128 | 0.396 → 0.419 (M1 : 0.466) | 0.093 → 0.052 (M1 : 0.015) | −0.103 → −0.109 (M1 : −0.120) |
+
+À Re = 5000, N = 128, l'écart max à Erturk passe de 0.112 (Thom) à 0.058 (Woods), contre 0.014 pour M1.
 
 - **Woods supprime la fausse solution** de N = 64 à Re = 3200 et réduit l'erreur dans tous les cas : la formule de Thom est bien
   une cause du défaut de M2, et la cause de la bascule vers la fausse solution.
@@ -163,7 +167,9 @@ Thom. Calculs complets (Ruche, 2026-11-19) :
   dans une couche limite très raide) ; on ne les a pas isolées.
 - **Woods est moins stable** : il diverge à Re = 5000, N = 64, comme le signale la littérature pour les schémas explicites. C'est une
   raison de garder Thom dans la méthode retenue.
-- Woods à N = 128, Re = 3200 et 5000 : en cours (à compléter).
+- **À N = 128 (grille de Ghia), même conclusion** : Woods réduit l'écart à Ghia de 20 % (Re = 3200) et de 45 % (Re = 5000), et le
+  déficit de ψ_min de −8.9 % à −6.9 % et de −13.7 % à −8.7 %. Il reste 1.2 fois (Re = 3200) à 3.5 fois (Re = 5000) l'erreur de M1 :
+  Thom explique environ la moitié du défaut de M2 à haut Re, pas la totalité.
 
 **Pourquoi M2 n'a pas « raison » et M1 tort.** Le signe de l'erreur de Thom ne repose que sur la convexité du vrai profil ; à
 Re = 5000, entre N = 128 et 256, la vitesse sous le couvercle de M2 bouge 5 fois plus que celle de M1 et rejoint M1 ; par rapport à
@@ -195,12 +201,25 @@ oscillante. Le très bon accord de M1 avec Ghia à N = 128 était en partie une 
 
 **Re = 3200** (Erturk ne publie pas ce Re) : ψ_min de M1 vaut −0.121, −0.121, −0.124 pour N = 64, 128, 256 ; celui de M2,
 −0.031 (faux), −0.110, −0.119 (Richardson sur N = 128, 256 : −0.121). Le temps n'est pas en cause (à l'arrêt, K ne bouge plus que de
-0.1 à 0.3 %). **Explication la plus probable, déjà établie en Partie A** (ADR 0002 §7.3) : la solution stationnaire de M1 dépend
-de Δt (projection non incrémentale du cours : au stationnaire, la divergence vaut Δt (Δ_h − D G̃) p, ordre ≈ 0.65 en Δt), celle de M2
-non. Or à haut Re, Δt = 0.8 × 2ν est **le même pour toutes les grilles** : cette part de l'erreur de M1 ne diminue pas quand on
-raffine, d'où une convergence en maillage non monotone. Test de confirmation : M1 à Re = 3200 avec Δt/2 et Δt/4.
-Premier résultat (N = 64) : **la solution de M1 dépend bien de Δt à haut Re** : K = 0.0471, 0.0476, 0.0479 pour Δt, Δt/2, Δt/4
-(+1.0 % puis +0.7 %), et le tourbillon s'intensifie quand Δt diminue. N = 128 et 256 : en cours (à compléter).
+0.1 à 0.3 %). **Hypothèse, tirée de la Partie A** (ADR 0002 §7.3) : la solution stationnaire de M1 dépend de Δt (projection non
+incrémentale du cours : au stationnaire, la divergence vaut Δt (Δ_h − D G̃) p), celle de M2 non. Or à haut Re, Δt = 0.8 × 2ν est
+**le même pour toutes les grilles** : cette part de l'erreur de M1 ne diminue pas quand on raffine. Test : M1 à Re = 3200 avec Δt/2
+et Δt/4 (Ruche, 2026-11-19) :
+
+| M1, Re = 3200 | ψ_min : Δt → Δt/2 → Δt/4 | K : Δt → Δt/2 → Δt/4 | écart max des profils (Δt → Δt/2, Δt/2 → Δt/4) | écart max à Ghia |
+|---|---|---|---|---|
+| N = 64 | −0.1207 → −0.1211 → −0.1215 | 0.0471 → 0.0476 → 0.0479 | 6.2·10⁻³, 3.8·10⁻³ | 0.149 → 0.158 |
+| N = 128 | −0.1204 → −0.1198 → −0.1196 | 0.0461 → 0.0458 → 0.0458 | 1.9·10⁻³, 0.7·10⁻³ | 0.040 → 0.039 |
+| N = 256 | −0.1234 → −0.1225 | 0.0480 → 0.0475 | 2.8·10⁻³ | 0.052 → 0.049 |
+
+- **La dépendance en Δt est confirmée à haut Re**, et elle converge quand Δt → 0 (rapport ≈ 2.7 entre deux divisions à N = 128).
+- **Elle n'explique qu'une partie de la non-monotonie.** À N = 256, diviser Δt par 2 rapproche ψ_min de la valeur extrapolée de M2
+  (−0.121) d'un tiers de l'écart. Mais elle ne change les profils que de 2 à 3·10⁻³, alors que N = 128 et N = 256 diffèrent d'environ
+  10⁻² (u(0.5, 0.953) : 0.453 contre 0.466). Δt → 0 extrapolé, ψ_min vaut environ −0.1215, −0.1195, −0.122 pour N = 64, 128, 256 :
+  la convergence reste oscillante, comme celle de M1 vers Erturk à Re = 5000 (+5.8 %, −2.0 %, +0.6 %).
+- **Conclusion** : à Re = 3200, le comportement de M1 en maillage vient surtout d'une convergence oscillante, avec une part en Δt
+  (environ un tiers à N = 256) ; l'écart croissant à Ghia vient en plus de l'erreur propre de Ghia (cf. Re = 5000), qu'on ne peut pas
+  chiffrer ici faute de référence plus fine à ce Re.
 
 ---
 
@@ -214,5 +233,5 @@ pentes locales tendent vers −1/2 (M2 : −0.54 à partir de Re = 2500 ; M1 : �
 
 ## 6. Ce qui reste ouvert
 
-- Résultat du test Woods (§3.2) et du test sur Δt de M1 (§4).
+- Les erreurs de M2 près de la paroi autres que Thom (environ la moitié du défaut à haut Re, §3.2) ne sont pas isolées.
 - Pour les profils à Re = 3200, pas de référence plus fine que Ghia.
