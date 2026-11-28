@@ -428,7 +428,8 @@ def steady_residual(new_fields, old_fields, dt):
 # Boucle en temps commune à M1 et M2 (Euler explicite, cours §3.1)
 # ---------------------------------------------------------------------------------------------
 
-def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label, residual_fields):
+def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label, residual_fields,
+                    probes=None, snapshot_times=None, log_every=None):
     """Avance un état jusqu'au stationnaire (ou jusqu'à t_max), avec la même règle pour M1 et M2.
 
     Entrées :
@@ -437,8 +438,16 @@ def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label, r
         state : état initial (fluide au repos) ; h, Δt, ν ;
         residual_tol, t_ref : critère d'arrêt ||R|| < ε ||R(t_ref)|| sur le résidu stationnaire
                 (steady_residual ; docs/adr/0003 §2), surveillé à partir de t_ref ;
+                residual_tol = 0 : jamais d'arrêt par le critère, calcul jusqu'à t_max (Partie C, régime périodique) ;
         residual_fields : clés de l'état sur lesquelles mesurer R, ("u", "v") pour M1, ("omega",) pour M2 ;
         t_max : garde-fou ; si atteint, converged = False ; label : nom pour les messages d'erreur.
+        probes : None (défaut, Parties A et B) ou liste d'indices de nœuds (i, j) : u et v y sont enregistrés
+                 à chaque pas (Partie C : une sonde voit une oscillation locale que K, moyenne sur la cavité, lisse) ;
+        snapshot_times : None (défaut) ou suite croissante d'instants : au premier pas où t ≥ instant, une copie
+                 de tous les champs de l'état est gardée (Partie C : champs au cours d'un cycle).
+        log_every : None (défaut) ou intervalle de temps physique entre deux lignes d'avancement affichées
+                 (Partie C : calculs de plusieurs heures, suivis dans un journal).
+        Avec les valeurs par défaut, le calcul est exactement celui des Parties A et B.
     Sortie : (état final, dictionnaire d'historique et d'informations d'exécution).
     Diagnostics K et P (énoncé) enregistrés à chaque pas : leur coût est négligeable devant le Poisson.
     """
@@ -448,6 +457,20 @@ def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label, r
     residual_ref = None                           # ||R(t_ref)||, mesuré au premier pas où t ≥ t_ref
     converged = False
     wall_start = time.perf_counter()
+    # Sondes : indices séparés en deux tableaux pour lire u[pi, pj] d'un coup (indexation numpy).
+    # Historique alloué une fois (au plus t_max/Δt + 1 pas) : une liste Python de ~10⁶ petits tableaux
+    # coûterait ~10 fois plus de mémoire.
+    if probes is not None:
+        probe_i = np.array([ij[0] for ij in probes])
+        probe_j = np.array([ij[1] for ij in probes])
+        n_alloc = int(np.ceil(t_max / dt)) + 1
+        hist_probe_u = np.empty((n_alloc, len(probes)))
+        hist_probe_v = np.empty((n_alloc, len(probes)))
+    # Instantanés : prochain instant visé, instants réellement atteints, copies des champs
+    if snapshot_times is not None:
+        snap_targets = list(snapshot_times)
+        snap_t, snap_fields = [], {key: [] for key in state}
+    next_log = log_every
 
     while t < t_max:
         new_state, n_iter = step(state, t)
@@ -463,6 +486,19 @@ def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label, r
         hist_p.append(lid_power(state["u"], h, nu, lid_velocity(t)))
         hist_iter.append(n_iter)
         hist_res.append(residual)
+        if probes is not None:
+            hist_probe_u[n_steps - 1] = state["u"][probe_i, probe_j]
+            hist_probe_v[n_steps - 1] = state["v"][probe_i, probe_j]
+        if snapshot_times is not None and snap_targets and t >= snap_targets[0]:
+            while snap_targets and t >= snap_targets[0]:   # instants visés dépassés pendant ce pas : une seule copie
+                snap_targets.pop(0)
+            snap_t.append(t)
+            for key in state:
+                snap_fields[key].append(state[key].copy())
+        if log_every is not None and t >= next_log:
+            next_log += log_every
+            print(f"{label} : t = {t:.1f} / {t_max:g}, K = {hist_k[-1]:.6e}, P = {hist_p[-1]:.6e}, "
+                  f"{n_iter} it. GC, {(time.perf_counter() - wall_start) / 60:.1f} min", flush=True)
 
         if not np.isfinite(residual):
             raise FloatingPointError(f"{label} diverge à t = {t:.4f} (Δt = {dt:.3e})")
@@ -481,6 +517,14 @@ def march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max, label, r
         "residual_ref": residual_ref, "converged": converged,
         "residual_tol": residual_tol, "t_ref": t_ref,
     }
+    if probes is not None:
+        info["probe_ij"] = np.array(probes)                           # (n_sondes, 2)
+        info["probe_u"] = hist_probe_u[:n_steps]                      # (n_pas, n_sondes)
+        info["probe_v"] = hist_probe_v[:n_steps]
+    if snapshot_times is not None:
+        info["snap_t"] = np.array(snap_t)                             # (n_instantanés,)
+        for key, frames in snap_fields.items():
+            info[f"snap_{key}"] = np.array(frames)                    # (n_instantanés, N+1, N+1)
     return state, info
 
 

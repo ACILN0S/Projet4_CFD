@@ -73,7 +73,8 @@ def projection_step(u, v, p, t, dt, h, nu, scheme, cg_tol, pressure_bc="neumann_
 
 
 def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
-                   residual_tol=1e-3, t_ref=30.0, t_max=1000.0, pressure_bc="neumann_ghost", dt=None):
+                   residual_tol=1e-3, t_ref=30.0, t_max=1000.0, pressure_bc="neumann_ghost", dt=None,
+                   probes=None, snapshot_times=None, log_every=None):
     """Lance M1 depuis le repos jusqu'au stationnaire (ou jusqu'à t_max).
 
     Entrées :
@@ -92,6 +93,7 @@ def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
         dt           : None (défaut) ⇒ Δt des limites de stabilité (common.time_step) ; sinon Δt imposé,
                        PLUS PETIT que cette limite (études « Δt fixe » et « convergence en Δt » du
                        notebook A : l'état stationnaire de M1 dépend de Δt, docs/adr/0002 §7.3).
+        probes, snapshot_times, log_every : sondes, instantanés et journal (Partie C), désactivés par défaut ; cf. common.march_to_steady.
     Sortie : dictionnaire avec la grille, les champs finaux (u, v, p), l'historique (t, K, P, itérations
              du gradient conjugué, ||R||) et les informations d'exécution (Δt, nombre de pas, temps de
              calcul, ||R(t_ref)||, converged = arrêt par le critère et non par t_max).
@@ -114,6 +116,7 @@ def run_projection(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
         return {"u": u, "v": v, "p": p}, n_iter
 
     state, info = march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max,
-                                  label=f"M1 (N = {n_cells}, Re = {reynolds})", residual_fields=("u", "v"))
+                                  label=f"M1 (N = {n_cells}, Re = {reynolds})", residual_fields=("u", "v"),
+                                  probes=probes, snapshot_times=snapshot_times, log_every=log_every)
     return {"method": "M1", "scheme": scheme, "pressure_bc": pressure_bc, "N": n_cells, "Re": reynolds,
             "nu": nu, "x": x, "y": y, "h": h, "dt": dt, "cg_tol": cg_tol, **state, **info}

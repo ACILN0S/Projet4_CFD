@@ -86,7 +86,7 @@ def psi_omega_step(omega, psi, u, v, t, dt, h, nu, scheme, cg_tol):
 
 
 def run_psi_omega(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
-                  residual_tol=1e-3, t_ref=30.0, t_max=1000.0, dt=None):
+                  residual_tol=1e-3, t_ref=30.0, t_max=1000.0, dt=None, probes=None, snapshot_times=None, log_every=None):
     """Lance M2 depuis le repos jusqu'au stationnaire (ou jusqu'à t_max).
 
     Mêmes entrées, même pas de temps (common.time_step : ω obéit à une équation d'advection-diffusion
@@ -94,6 +94,7 @@ def run_psi_omega(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
     que M2 fait évoluer, comme R l'est sur u, v pour M1) et mêmes diagnostics que M1 (run_projection) :
     seule la méthode change. dt : None ⇒ Δt de stabilité ;
     sinon Δt imposé, plus petit que cette limite (témoin de l'étude « convergence en Δt »).
+    probes, snapshot_times, log_every : sondes, instantanés et journal (Partie C), désactivés par défaut ; cf. common.march_to_steady.
     Sortie : dictionnaire avec la grille, les champs finaux (ω, ψ, u, v), l'historique et les
              informations d'exécution (mêmes clés que M1).
     """
@@ -115,6 +116,7 @@ def run_psi_omega(n_cells, reynolds, scheme="centered", cg_tol=1e-8,
         return {"omega": omega, "psi": psi, "u": u, "v": v}, n_iter
 
     state, info = march_to_steady(step, state, h, dt, nu, residual_tol, t_ref, t_max,
-                                  label=f"M2 (N = {n_cells}, Re = {reynolds})", residual_fields=("omega",))
+                                  label=f"M2 (N = {n_cells}, Re = {reynolds})", residual_fields=("omega",),
+                                  probes=probes, snapshot_times=snapshot_times, log_every=log_every)
     return {"method": "M2", "scheme": scheme, "N": n_cells, "Re": reynolds, "nu": nu,
             "x": x, "y": y, "h": h, "dt": dt, "cg_tol": cg_tol, **state, **info}
